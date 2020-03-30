@@ -1,1 +1,3 @@
-name="PyDeezer"
+from .Deezer import Deezer
+
+name = "PyDeezer"
