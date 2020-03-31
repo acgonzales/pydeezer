@@ -3,7 +3,6 @@ import json
 
 from . import constants
 from .exceptions import LoginError
-from .ens import User
 
 class Deezer:
     def __init__(self, arl=None):
@@ -32,10 +31,19 @@ class Deezer:
         raw_user = data["USER"]
 
         if raw_user["USER_PICTURE"]:
-            self.user = User(raw_user["USER_ID"], raw_user["BLOG_NAME"], self.getCookies()["arl"], 
-            "https://e-cdns-images.dzcdn.net/images/user/{0}/250x250-000000-80-0-0.jpg".format(raw_user["USER_PICTURE"]))
+            self.user = {
+                "id": raw_user["USER_ID"],
+                "name": raw_user["BLOG_NAME"],
+                "arl": self.getCookies()["arl"],
+                "image": "https://e-cdns-images.dzcdn.net/images/user/{0}/250x250-000000-80-0-0.jpg".format(raw_user["USER_PICTURE"])
+            }
         else:
-            self.user = User(raw_user["USER_ID"], raw_user["BLOG_NAME"], self.getCookies()["arl"])
+            self.user = {
+                "id": raw_user["USER_ID"],
+                "name": raw_user["BLOG_NAME"],
+                "arl": self.getCookies()["arl"],
+                "image": "https://e-cdns-images.dzcdn.net/images/user/250x250-000000-80-0-0.jpg"
+            }
 
     def setCookie(self, key, value, domain=constants.DEEZER_URL, path="/"):
         cookie=requests.cookies.create_cookie(
