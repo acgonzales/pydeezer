@@ -6,8 +6,10 @@ from .constants import HTTP_HEADERS
 from .constants import API_URL
 from .constants import LEGACY_API_URL
 from .constants import GET_USER_DATA
+from .constants import GET_SUGGESTED_QUERIES
 
 from .exceptions import LoginError
+from .exceptions import APIRequestError
 
 class Deezer:
     def __init__(self, arl=None):
@@ -69,12 +71,12 @@ class Deezer:
             self.getUserData()
         return self.token
 
-    def apiCall(self, method, json=None):
+    def apiCall(self, method, params={}):
         token = "null"
         if method != GET_USER_DATA:
             token = self.token
 
-        res = self.session.post(API_URL, json=json, data={
+        res = self.session.post(API_URL, json=params, params={
             "api_version": "1.0",
             "api_token": token,
             "input": "3",
@@ -86,3 +88,21 @@ class Deezer:
     def legacyApiCall(self, method, params=None):
         res = self.session.get("{0}/{1}".format(LEGACY_API_URL, method), params=params, headers=HTTP_HEADERS, cookies=self.getCookies())
         return res
+
+    def getSuggestedQueries(self, query):
+        res = self.apiCall(GET_SUGGESTED_QUERIES, params={
+            "QUERY": query
+        })
+        result_data = res.json()
+
+        if result_data["error"]:
+            error_type = list(result_data["error"].keys())[0]
+            error_message = result_data["error"][error_type]
+            raise APIRequestError("{0} : {1}".format(error_type, error_message))
+
+        results = result_data["results"]["SUGGESTION"]
+        for result in results:
+            if "HIGHLIGHT" in result:
+                del result["HIGHLIGHT"]
+
+        return results
