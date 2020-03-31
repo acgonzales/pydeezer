@@ -1,7 +1,12 @@
 import requests
 import json
 
-from . import constants
+from .constants import DEEZER_URL
+from .constants import HTTP_HEADERS
+from .constants import API_URL
+from .constants import LEGACY_API_URL
+from .constants import GET_USER_DATA
+
 from .exceptions import LoginError
 
 class Deezer:
@@ -20,7 +25,7 @@ class Deezer:
         return self.user
 
     def getUserData(self):
-        res = self.apiCall(constants.GET_USER_DATA)
+        res = self.apiCall(GET_USER_DATA)
         data = res.json()["results"]
 
         self.token = data["checkForm"]
@@ -45,18 +50,18 @@ class Deezer:
                 "image": "https://e-cdns-images.dzcdn.net/images/user/250x250-000000-80-0-0.jpg"
             }
 
-    def setCookie(self, key, value, domain=constants.DEEZER_URL, path="/"):
-        cookie=requests.cookies.create_cookie(
+    def setCookie(self, key, value, domain=DEEZER_URL, path="/"):
+        cookie = requests.cookies.create_cookie(
             name=key, value=value, domain=domain)
         self.session.cookies.set_cookie(cookie)
 
     def getCookies(self):
-        if constants.DEEZER_URL in self.session.cookies.list_domains():
-            return self.session.cookies.get_dict(constants.DEEZER_URL)
+        if DEEZER_URL in self.session.cookies.list_domains():
+            return self.session.cookies.get_dict(DEEZER_URL)
         return None
 
     def getSID(self):
-        res = self.session.get(constants.DEEZER_URL, headers=constants.HTTP_HEADERS, cookies=self.getCookies())
+        res = self.session.get(DEEZER_URL, headers=HTTP_HEADERS, cookies=self.getCookies())
         return res.cookies.get("sid", domain=".deezer.com")
 
     def getToken(self):
@@ -65,19 +70,19 @@ class Deezer:
         return self.token
 
     def apiCall(self, method, json=None):
-        token="null"
-        if method != constants.GET_USER_DATA:
-            token=self.token
+        token = "null"
+        if method != GET_USER_DATA:
+            token = self.token
 
-        res = self.session.post(constants.API_URL, json=json, data={
+        res = self.session.post(API_URL, json=json, data={
             "api_version": "1.0",
             "api_token": token,
             "input": "3",
             "method": method
-        }, headers=constants.HTTP_HEADERS, cookies=self.getCookies())
+        }, headers=HTTP_HEADERS, cookies=self.getCookies())
 
         return res
 
     def legacyApiCall(self, method, params=None):
-        res = self.session.get("{0}/{1}".format(constants.LEGACY_API_URL, method), params=params, headers=constants.HTTP_HEADERS, cookies=self.getCookies())
+        res = self.session.get("{0}/{1}".format(LEGACY_API_URL, method), params=params, headers=HTTP_HEADERS, cookies=self.getCookies())
         return res
