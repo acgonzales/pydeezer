@@ -1,3 +1,4 @@
+# API Urls
 DEEZER_URL = "https://www.deezer.com"
 API_URL = "https://www.deezer.com/ajax/gw-light.php"
 MOBILE_API_URL = "https://api.deezer.com/1.0/gateway.php"
@@ -13,7 +14,9 @@ HTTP_HEADERS = {
     "Connection": 'keep-alive'
 }
 
+# Image Host
 ALBUM_HOST = "https://e-cdns-images.dzcdn.net/images/cover/"
 ARTIST_HOST = "https://e-cdns-images.dzcdn.net/images/artist/"
 
+# API Methods
 GET_USER_DATA = "deezer.getUserData"
