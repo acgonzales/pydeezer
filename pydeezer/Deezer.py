@@ -1,22 +1,23 @@
 import requests
-# from datetime import date
-# from dateutil.relativedelta import relativedelta
+import re
 
 from . import constants
 from .exceptions import LoginError
 from .ens import User
 
-
 class Deezer:
     def __init__(self, arl=None):
         self.session = requests.session()
-
+        self.user = None
+        
         if arl:
             self.loginViaArl(arl)
 
     def loginViaArl(self, arl):
         self.setCookie("arl", arl)
         self.getUserData()
+
+        return self.user
 
     def getUserData(self):
         res = self.apiCall(constants.GET_USER_DATA)
@@ -45,6 +46,10 @@ class Deezer:
             return self.session.cookies.get_dict(constants.DEEZER_URL)
         return None
 
+    def getSID(self):
+        res = self.session.get(constants.DEEZER_URL, headers=constants.HTTP_HEADERS, cookies=self.getCookies())
+        return res.cookies.get("sid", domain=".deezer.com")
+
     def getToken(self):
         if not self.token:
             self.getUserData()
@@ -55,7 +60,7 @@ class Deezer:
         if method != constants.GET_USER_DATA:
             token=self.token
 
-        res=self.session.post(constants.API_URL, json=json, data={
+        res = self.session.post(constants.API_URL, json=json, data={
             "api_version": "1.0",
             "api_token": token,
             "input": "3",
