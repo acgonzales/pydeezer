@@ -1,5 +1,5 @@
 import requests
-import re
+import json
 
 from . import constants
 from .exceptions import LoginError
@@ -9,8 +9,9 @@ class Deezer:
     def __init__(self, arl=None):
         self.session = requests.session()
         self.user = None
-        
+
         if arl:
+            self.arl = arl
             self.loginViaArl(arl)
 
     def loginViaArl(self, arl):
@@ -67,4 +68,8 @@ class Deezer:
             "method": method
         }, headers=constants.HTTP_HEADERS, cookies=self.getCookies())
 
+        return res
+
+    def legacyApiCall(self, method, params=None):
+        res = self.session.get("{0}/{1}".format(constants.LEGACY_API_URL, method), params=params, headers=constants.HTTP_HEADERS, cookies=self.getCookies())
         return res
