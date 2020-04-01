@@ -117,4 +117,3 @@ class Deezer:
                 del result["HIGHLIGHT"]
 
         return results
-        
