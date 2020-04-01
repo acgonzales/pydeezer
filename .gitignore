@@ -134,7 +134,7 @@ pip-selfcheck.json
 .history
 
 # End of https://www.gitignore.io/api/venv,python,visualstudiocode
-
-activate.bat
+*_env/
 test.py
-*.old.*
+*.old.py
+*.activate.bat

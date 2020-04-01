@@ -19,6 +19,7 @@ from .exceptions import APIRequestError
 
 from . import util
 
+
 class Deezer:
     def __init__(self, arl=None):
         self.session = requests.session()
@@ -70,7 +71,8 @@ class Deezer:
         return None
 
     def get_sid(self):
-        res = self.session.get(DEEZER_URL, headers=HTTP_HEADERS, cookies=self.get_cookies())
+        res = self.session.get(
+            DEEZER_URL, headers=HTTP_HEADERS, cookies=self.get_cookies())
         return res.cookies.get("sid", domain=".deezer.com")
 
     def get_token(self):
@@ -90,13 +92,22 @@ class Deezer:
 
         return results
 
-    def search_track(self, query, limit=30, index=0):
-        return self._legacy_search_track(query, limit=limit, index=index)
+    def search_tracks(self, query, limit=30, index=0):
+        return self._legacy_search(SEARCH_TRACK, query, limit=limit, index=index)
 
-    def _legacy_search_track(self, query, limit=30, index=0):
+    def search_albums(self, query, limit=30, index=0):
+        return self._legacy_search(SEARCH_ALBUM, query, limit=limit, index=index)
+
+    def search_artists(self, query, limit=30, index=0):
+        return self._legacy_search(SEARCH_ARTIST, query, limit=limit, index=index)
+
+    def search_playlists(self, query, limit=30, index=0):
+        return self._legacy_search(SEARCH_PLAYLIST, query, limit=limit, index=index)
+
+    def _legacy_search(self, method, query, limit=30, index=0):
         query = util.clean_query(query)
 
-        data = self._legacy_api_call(SEARCH_TRACK, {
+        data = self._legacy_api_call(method, {
             "q": query,
             "limit": limit,
             "index": index
@@ -121,19 +132,21 @@ class Deezer:
         if "error" in data and data["error"]:
             error_type = list(data["error"].keys())[0]
             error_message = data["error"][error_type]
-            raise APIRequestError("{0} : {1}".format(error_type, error_message))
+            raise APIRequestError(
+                "{0} : {1}".format(error_type, error_message))
 
         return data
 
     def _legacy_api_call(self, method, params=None):
-        res = self.session.get("{0}/{1}".format(LEGACY_API_URL, method), params=params, headers=HTTP_HEADERS, cookies=self.get_cookies())
-        
+        res = self.session.get("{0}/{1}".format(LEGACY_API_URL, method),
+                               params=params, headers=HTTP_HEADERS, cookies=self.get_cookies())
+
         data = res.json()
 
         if "error" in data and data["error"]:
             error_type = list(data["error"].keys())[0]
             error_message = data["error"][error_type]
-            raise APIRequestError("{0} : {1}".format(error_type, error_message))
+            raise APIRequestError(
+                "{0} : {1}".format(error_type, error_message))
 
         return data
-
