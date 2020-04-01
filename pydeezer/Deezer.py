@@ -35,8 +35,7 @@ class Deezer:
         return self.user
 
     def get_user_data(self):
-        res = self._api_call(GET_USER_DATA)
-        data = res.json()["results"]
+        data = self._api_call(GET_USER_DATA)["results"]
 
         self.token = data["checkForm"]
 
@@ -80,18 +79,30 @@ class Deezer:
         return self.token
 
     def get_suggested_queries(self, query):
-        res = self._api_call(GET_SUGGESTED_QUERIES, params={
+        data = self._api_call(GET_SUGGESTED_QUERIES, params={
             "QUERY": query
         })
 
-        result_data = res.json()
-
-        results = result_data["results"]["SUGGESTION"]
+        results = data["results"]["SUGGESTION"]
         for result in results:
             if "HIGHLIGHT" in result:
                 del result["HIGHLIGHT"]
 
         return results
+
+    def search_track(self, query, limit=30, index=0):
+        return self._legacy_search_track(query, limit=limit, index=index)
+
+    def _legacy_search_track(self, query, limit=30, index=0):
+        query = util.clean_query(query)
+
+        data = self._legacy_api_call(SEARCH_TRACK, {
+            "q": query,
+            "limit": limit,
+            "index": index
+        })
+
+        return data["data"]
 
     def _api_call(self, method, params={}):
         token = "null"
@@ -107,22 +118,22 @@ class Deezer:
 
         data = res.json()
 
-        if data["error"]:
+        if "error" in data and data["error"]:
             error_type = list(data["error"].keys())[0]
             error_message = data["error"][error_type]
             raise APIRequestError("{0} : {1}".format(error_type, error_message))
 
-        return res
+        return data
 
     def _legacy_api_call(self, method, params=None):
         res = self.session.get("{0}/{1}".format(LEGACY_API_URL, method), params=params, headers=HTTP_HEADERS, cookies=self.get_cookies())
         
         data = res.json()
 
-        if data["error"]:
+        if "error" in data and data["error"]:
             error_type = list(data["error"].keys())[0]
             error_message = data["error"][error_type]
             raise APIRequestError("{0} : {1}".format(error_type, error_message))
 
-        return res
+        return data
 
