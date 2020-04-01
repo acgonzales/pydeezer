@@ -18,7 +18,17 @@ HTTP_HEADERS = {
 ALBUM_HOST = "https://e-cdns-images.dzcdn.net/images/cover/"
 ARTIST_HOST = "https://e-cdns-images.dzcdn.net/images/artist/"
 
+# Search Types
+TRACK = "track"
+PLAYLIST = "playlist"
+ALBUM = "album"
+ARTIST = "artist"
+
 # API Methods
 GET_USER_DATA = "deezer.getUserData"
 GET_SUGGESTED_QUERIES = "search_getSuggestedQueries"
-
+SEARCH_TRACK = f"search/{TRACK}"
+SEARCH_PLAYLIST = f"search/{PLAYLIST}"
+SEARCH_PLAYLIST = f"search/{PLAYLIST}"
+SEARCH_ALBUM = f"search/{ALBUM}"
+SEARCH_ARTIST = f"search/{ARTIST}"

@@ -1,15 +1,23 @@
-import requests
 import json
+
+import requests
 
 from .constants import DEEZER_URL
 from .constants import HTTP_HEADERS
 from .constants import API_URL
 from .constants import LEGACY_API_URL
+
 from .constants import GET_USER_DATA
 from .constants import GET_SUGGESTED_QUERIES
+from .constants import SEARCH_TRACK
+from .constants import SEARCH_ARTIST
+from .constants import SEARCH_ALBUM
+from .constants import SEARCH_PLAYLIST
 
 from .exceptions import LoginError
 from .exceptions import APIRequestError
+
+from . import util
 
 class Deezer:
     def __init__(self, arl=None):
@@ -107,7 +115,7 @@ class Deezer:
         return res
 
     def _legacy_api_call(self, method, params=None):
-        res = self.session.get("{0}/{1}".format(LEGACY_API_URL, method), params=params, headers=HTTP_HEADERS, cookies=self.getCookies())
+        res = self.session.get("{0}/{1}".format(LEGACY_API_URL, method), params=params, headers=HTTP_HEADERS, cookies=self.get_cookies())
         
         data = res.json()
 
@@ -118,4 +126,3 @@ class Deezer:
 
         return res
 
-        
