@@ -21,3 +21,4 @@ ARTIST_HOST = "https://e-cdns-images.dzcdn.net/images/artist/"
 # API Methods
 GET_USER_DATA = "deezer.getUserData"
 GET_SUGGESTED_QUERIES = "search_getSuggestedQueries"
+

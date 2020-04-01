@@ -18,16 +18,16 @@ class Deezer:
 
         if arl:
             self.arl = arl
-            self.loginViaArl(arl)
+            self.login_via_arl(arl)
 
-    def loginViaArl(self, arl):
-        self.setCookie("arl", arl)
-        self.getUserData()
+    def login_via_arl(self, arl):
+        self.set_cookie("arl", arl)
+        self.get_user_data()
 
         return self.user
 
-    def getUserData(self):
-        res = self.apiCall(GET_USER_DATA)
+    def get_user_data(self):
+        res = self._api_call(GET_USER_DATA)
         data = res.json()["results"]
 
         self.token = data["checkForm"]
@@ -41,71 +41,38 @@ class Deezer:
             self.user = {
                 "id": raw_user["USER_ID"],
                 "name": raw_user["BLOG_NAME"],
-                "arl": self.getCookies()["arl"],
+                "arl": self.get_cookies()["arl"],
                 "image": "https://e-cdns-images.dzcdn.net/images/user/{0}/250x250-000000-80-0-0.jpg".format(raw_user["USER_PICTURE"])
             }
         else:
             self.user = {
                 "id": raw_user["USER_ID"],
                 "name": raw_user["BLOG_NAME"],
-                "arl": self.getCookies()["arl"],
+                "arl": self.get_cookies()["arl"],
                 "image": "https://e-cdns-images.dzcdn.net/images/user/250x250-000000-80-0-0.jpg"
             }
 
-    def setCookie(self, key, value, domain=DEEZER_URL, path="/"):
+    def set_cookie(self, key, value, domain=DEEZER_URL, path="/"):
         cookie = requests.cookies.create_cookie(
             name=key, value=value, domain=domain)
         self.session.cookies.set_cookie(cookie)
 
-    def getCookies(self):
+    def get_cookies(self):
         if DEEZER_URL in self.session.cookies.list_domains():
             return self.session.cookies.get_dict(DEEZER_URL)
         return None
 
-    def getSID(self):
-        res = self.session.get(DEEZER_URL, headers=HTTP_HEADERS, cookies=self.getCookies())
+    def get_sid(self):
+        res = self.session.get(DEEZER_URL, headers=HTTP_HEADERS, cookies=self.get_cookies())
         return res.cookies.get("sid", domain=".deezer.com")
 
-    def getToken(self):
+    def get_token(self):
         if not self.token:
-            self.getUserData()
+            self.get_user_data()
         return self.token
 
-    def apiCall(self, method, params={}):
-        token = "null"
-        if method != GET_USER_DATA:
-            token = self.token
-
-        res = self.session.post(API_URL, json=params, params={
-            "api_version": "1.0",
-            "api_token": token,
-            "input": "3",
-            "method": method
-        }, headers=HTTP_HEADERS, cookies=self.getCookies())
-
-        data = res.json()
-
-        if data["error"]:
-            error_type = list(data["error"].keys())[0]
-            error_message = data["error"][error_type]
-            raise APIRequestError("{0} : {1}".format(error_type, error_message))
-
-        return res
-
-    def legacyApiCall(self, method, params=None):
-        res = self.session.get("{0}/{1}".format(LEGACY_API_URL, method), params=params, headers=HTTP_HEADERS, cookies=self.getCookies())
-        
-        data = res.json()
-
-        if data["error"]:
-            error_type = list(data["error"].keys())[0]
-            error_message = data["error"][error_type]
-            raise APIRequestError("{0} : {1}".format(error_type, error_message))
-
-        return res
-
-    def getSuggestedQueries(self, query):
-        res = self.apiCall(GET_SUGGESTED_QUERIES, params={
+    def get_suggested_queries(self, query):
+        res = self._api_call(GET_SUGGESTED_QUERIES, params={
             "QUERY": query
         })
 
@@ -117,3 +84,38 @@ class Deezer:
                 del result["HIGHLIGHT"]
 
         return results
+
+    def _api_call(self, method, params={}):
+        token = "null"
+        if method != GET_USER_DATA:
+            token = self.token
+
+        res = self.session.post(API_URL, json=params, params={
+            "api_version": "1.0",
+            "api_token": token,
+            "input": "3",
+            "method": method
+        }, headers=HTTP_HEADERS, cookies=self.get_cookies())
+
+        data = res.json()
+
+        if data["error"]:
+            error_type = list(data["error"].keys())[0]
+            error_message = data["error"][error_type]
+            raise APIRequestError("{0} : {1}".format(error_type, error_message))
+
+        return res
+
+    def _legacy_api_call(self, method, params=None):
+        res = self.session.get("{0}/{1}".format(LEGACY_API_URL, method), params=params, headers=HTTP_HEADERS, cookies=self.getCookies())
+        
+        data = res.json()
+
+        if data["error"]:
+            error_type = list(data["error"].keys())[0]
+            error_message = data["error"][error_type]
+            raise APIRequestError("{0} : {1}".format(error_type, error_message))
+
+        return res
+
+        
