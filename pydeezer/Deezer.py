@@ -89,10 +89,10 @@ class Deezer:
     def get_track(self, track_id):
         method = SONG_GET_DATA
         params = {
-            "SNG_ID": id
+            "SNG_ID": track_id
         }
 
-        if not id < 0:
+        if not track_id < 0:
             method = PAGE_TRACK
 
         data = self._api_call(method, params=params)
