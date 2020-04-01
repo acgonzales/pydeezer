@@ -83,22 +83,33 @@ class Deezer:
             "method": method
         }, headers=HTTP_HEADERS, cookies=self.getCookies())
 
+        data = res.json()
+
+        if data["error"]:
+            error_type = list(data["error"].keys())[0]
+            error_message = data["error"][error_type]
+            raise APIRequestError("{0} : {1}".format(error_type, error_message))
+
         return res
 
     def legacyApiCall(self, method, params=None):
         res = self.session.get("{0}/{1}".format(LEGACY_API_URL, method), params=params, headers=HTTP_HEADERS, cookies=self.getCookies())
+        
+        data = res.json()
+
+        if data["error"]:
+            error_type = list(data["error"].keys())[0]
+            error_message = data["error"][error_type]
+            raise APIRequestError("{0} : {1}".format(error_type, error_message))
+
         return res
 
     def getSuggestedQueries(self, query):
         res = self.apiCall(GET_SUGGESTED_QUERIES, params={
             "QUERY": query
         })
-        result_data = res.json()
 
-        if result_data["error"]:
-            error_type = list(result_data["error"].keys())[0]
-            error_message = result_data["error"][error_type]
-            raise APIRequestError("{0} : {1}".format(error_type, error_message))
+        result_data = res.json()
 
         results = result_data["results"]["SUGGESTION"]
         for result in results:
@@ -106,3 +117,4 @@ class Deezer:
                 del result["HIGHLIGHT"]
 
         return results
+        
