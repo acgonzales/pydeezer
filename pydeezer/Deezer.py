@@ -16,6 +16,7 @@ from .constants import SEARCH_PLAYLIST
 from .constants import SONG_GET_DATA
 from .constants import SONG_GET_LIST_DATA
 from .constants import PAGE_TRACK
+from .constants import ALBUM_GET_DATA
 
 from .exceptions import LoginError
 from .exceptions import APIRequestError
@@ -111,6 +112,13 @@ class Deezer:
 
         return data
 
+    def get_album(self, album_id):
+        data = self._api_call(ALBUM_GET_DATA, params={
+            "ALB_ID": album_id
+        })
+
+        return data["results"]
+
     def get_suggested_queries(self, query):
         data = self._api_call(GET_SUGGESTED_QUERIES, params={
             "QUERY": query
@@ -168,7 +176,7 @@ class Deezer:
 
         return data
 
-    def _legacy_api_call(self, method, params=None):
+    def _legacy_api_call(self, method, params={}):
         res = self.session.get("{0}/{1}".format(LEGACY_API_URL, method),
                                params=params, headers=HTTP_HEADERS, cookies=self.get_cookies())
 
