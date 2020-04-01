@@ -1,5 +1,6 @@
 import re
 
+
 def clean_query(query):
     # A pure copy-paste of regex patterns from DeezloaderRemix
     # I dont know regex

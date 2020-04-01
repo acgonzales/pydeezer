@@ -13,6 +13,9 @@ from .constants import SEARCH_TRACK
 from .constants import SEARCH_ARTIST
 from .constants import SEARCH_ALBUM
 from .constants import SEARCH_PLAYLIST
+from .constants import SONG_GET_DATA
+from .constants import SONG_GET_LIST_DATA
+from .constants import PAGE_TRACK
 
 from .exceptions import LoginError
 from .exceptions import APIRequestError
@@ -79,6 +82,34 @@ class Deezer:
         if not self.token:
             self.get_user_data()
         return self.token
+
+    def get_track(self, track_id):
+        method = SONG_GET_DATA
+        params = {
+            "SNG_ID": id
+        }
+
+        if not id < 0:
+            method = PAGE_TRACK
+
+        data = self._api_call(method, params=params)
+
+        return data["results"]
+
+    def get_tracks(self, track_ids):
+        data = self._api_call(SONG_GET_LIST_DATA, params={
+            "SNG_IDS": track_ids
+        })
+
+        data = data["results"]
+        valid_ids = [str(song["SNG_ID"]) for song in data["data"]]
+
+        data["errors"] = []
+        for id in track_ids:
+            if not str(id) in valid_ids:
+                data["errors"].append(id)
+
+        return data
 
     def get_suggested_queries(self, query):
         data = self._api_call(GET_SUGGESTED_QUERIES, params={

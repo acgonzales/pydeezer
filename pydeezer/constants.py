@@ -27,6 +27,11 @@ ARTIST = "artist"
 # API Methods
 GET_USER_DATA = "deezer.getUserData"
 GET_SUGGESTED_QUERIES = "search_getSuggestedQueries"
+
+SONG_GET_DATA = "song.getData"
+PAGE_TRACK = "deezer.pageTrack"
+SONG_GET_LIST_DATA = "song.getListData"
+
 SEARCH_TRACK = f"search/{TRACK}"
 SEARCH_PLAYLIST = f"search/{PLAYLIST}"
 SEARCH_PLAYLIST = f"search/{PLAYLIST}"

@@ -4,4 +4,3 @@ class LoginError(Exception):
 
 class APIRequestError(Exception):
     pass
-
