@@ -18,6 +18,7 @@ from .constants import SONG_GET_LIST_DATA
 from .constants import PAGE_TRACK
 from .constants import ALBUM_GET_DATA
 from .constants import PAGE_ARTIST
+from .constants import PAGE_PLAYLIST
 
 from .exceptions import LoginError
 from .exceptions import APIRequestError
@@ -115,7 +116,8 @@ class Deezer:
 
     def get_album(self, album_id):
         data = self._api_call(ALBUM_GET_DATA, params={
-            "ALB_ID": album_id
+            "ALB_ID": album_id,
+            "LANG": "en"
         })
 
         return data["results"]
@@ -123,6 +125,14 @@ class Deezer:
     def get_artist(self, artist_id):
         data = self._api_call(PAGE_ARTIST, params={
             "ART_ID": artist_id,
+            "LANG": "en"
+        })
+
+        return data["results"]
+
+    def get_playlist(self, playlist_id):
+        data = self._api_call(PAGE_PLAYLIST, params={
+            "playlist_id": playlist_id,
             "LANG": "en"
         })
 

@@ -39,6 +39,9 @@ ALBUM_GET_DATA = "album.getData"
 # Artist info
 PAGE_ARTIST = "deezer.pageArtist"
 
+# Playlist info
+PAGE_PLAYLIST = "deezer.pagePlaylist"
+
 # Search Methods
 GET_SUGGESTED_QUERIES = "search_getSuggestedQueries"
 SEARCH_TRACK = f"search/{TRACK}"
