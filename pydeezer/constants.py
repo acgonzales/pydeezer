@@ -35,6 +35,7 @@ SONG_GET_LIST_DATA = "song.getListData"
 
 # Album info
 ALBUM_GET_DATA = "album.getData"
+ALBUM_TRACKS = "song.getListByAlbum"
 
 # Artist info
 PAGE_ARTIST = "deezer.pageArtist"

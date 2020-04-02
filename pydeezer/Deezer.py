@@ -17,6 +17,7 @@ from .constants import SONG_GET_DATA
 from .constants import SONG_GET_LIST_DATA
 from .constants import PAGE_TRACK
 from .constants import ALBUM_GET_DATA
+from .constants import ALBUM_TRACKS
 from .constants import PAGE_ARTIST
 from .constants import PAGE_PLAYLIST
 
@@ -119,6 +120,17 @@ class Deezer:
             "ALB_ID": album_id,
             "LANG": "en"
         })
+
+        return data["results"]
+
+    def get_album_tracks(self, album_id):
+        data = self._api_call(ALBUM_TRACKS, params={
+            "ALB_ID": album_id,
+            "nb": -1
+        })
+
+        for i, track in enumerate(data["results"]["data"]):
+            track["position"] = i + 1
 
         return data["results"]
 
