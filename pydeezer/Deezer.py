@@ -109,7 +109,7 @@ class Deezer:
     def get_album_tracks(self, album_id):
         data = self._api_call(ALBUM_TRACKS, params={
             "ALB_ID": album_id,
-            "nb": -1
+            "NB": -1
         })
 
         for i, track in enumerate(data["results"]["data"]):
@@ -124,6 +124,16 @@ class Deezer:
         })
 
         return data["results"]
+
+    def get_artist_discography(self, artist_id):
+        data = self._api_call(ARTIST_DISCOGRAPHY, params={
+            "ART_ID": artist_id,
+            "NB": 500,
+            "NB_SONGS": -1,
+            "START": 0
+        })
+
+        return data["results"]["data"]
 
     def get_playlist(self, playlist_id):
         data = self._api_call(PAGE_PLAYLIST, params={
