@@ -2,24 +2,7 @@ import json
 
 import requests
 
-from .constants import DEEZER_URL
-from .constants import HTTP_HEADERS
-from .constants import API_URL
-from .constants import LEGACY_API_URL
-
-from .constants import GET_USER_DATA
-from .constants import GET_SUGGESTED_QUERIES
-from .constants import SEARCH_TRACK
-from .constants import SEARCH_ARTIST
-from .constants import SEARCH_ALBUM
-from .constants import SEARCH_PLAYLIST
-from .constants import SONG_GET_DATA
-from .constants import SONG_GET_LIST_DATA
-from .constants import PAGE_TRACK
-from .constants import ALBUM_GET_DATA
-from .constants import ALBUM_TRACKS
-from .constants import PAGE_ARTIST
-from .constants import PAGE_PLAYLIST
+from .constants import *
 
 from .exceptions import LoginError
 from .exceptions import APIRequestError
