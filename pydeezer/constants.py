@@ -40,6 +40,7 @@ ALBUM_TRACKS = "song.getListByAlbum"
 # Artist info
 PAGE_ARTIST = "deezer.pageArtist"
 ARTIST_DISCOGRAPHY = "album.getDiscography"
+ARTIST_TOP_TRACKS = "artist.getTopTrack"
 
 # Playlist info
 PAGE_PLAYLIST = "deezer.pagePlaylist"

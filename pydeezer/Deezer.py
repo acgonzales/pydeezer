@@ -113,9 +113,9 @@ class Deezer:
         })
 
         for i, track in enumerate(data["results"]["data"]):
-            track["position"] = i + 1
+            track["_POSITION"] = i + 1
 
-        return data["results"]
+        return data["results"]["data"]
 
     def get_artist(self, artist_id):
         data = self._api_call(PAGE_ARTIST, params={
@@ -132,6 +132,17 @@ class Deezer:
             "NB_SONGS": -1,
             "START": 0
         })
+
+        return data["results"]["data"]
+
+    def get_artist_top_tracks(self, artist_id):
+        data = self._api_call(ARTIST_TOP_TRACKS, params={
+            "ART_ID": artist_id,
+            "NB": 100
+        })
+
+        for i, track in enumerate(data["results"]["data"]):
+            track["_POSITION"] = i + 1
 
         return data["results"]["data"]
 
