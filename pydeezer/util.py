@@ -1,4 +1,5 @@
 import re
+import hashlib
 
 
 def clean_query(query):
@@ -34,3 +35,7 @@ def save_lyrics(lyric_data, save_path):
     except Exception as err:
         print("Error", err)
         return False
+
+
+def get_text_md5(text, encoding="UTF-8"):
+    return hashlib.md5(str(text).encode(encoding)).hexdigest()
