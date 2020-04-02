@@ -27,7 +27,7 @@ class Deezer:
         return self.user
 
     def get_user_data(self):
-        data = self._api_call(GET_USER_DATA)["results"]
+        data = self._api_call(api_methods.GET_USER_DATA)["results"]
 
         self.token = data["checkForm"]
 
@@ -51,19 +51,19 @@ class Deezer:
                 "image": "https://e-cdns-images.dzcdn.net/images/user/250x250-000000-80-0-0.jpg"
             }
 
-    def set_cookie(self, key, value, domain=DEEZER_URL, path="/"):
+    def set_cookie(self, key, value, domain=api_urls.DEEZER_URL, path="/"):
         cookie = requests.cookies.create_cookie(
             name=key, value=value, domain=domain)
         self.session.cookies.set_cookie(cookie)
 
     def get_cookies(self):
-        if DEEZER_URL in self.session.cookies.list_domains():
-            return self.session.cookies.get_dict(DEEZER_URL)
+        if api_urls.DEEZER_URL in self.session.cookies.list_domains():
+            return self.session.cookies.get_dict(api_urls.DEEZER_URL)
         return None
 
     def get_sid(self):
         res = self.session.get(
-            DEEZER_URL, headers=HTTP_HEADERS, cookies=self.get_cookies())
+            api_urls.API_URL, headers=networking_settings.HTTP_HEADERS, cookies=self.get_cookies())
         return res.cookies.get("sid", domain=".deezer.com")
 
     def get_token(self):
@@ -72,20 +72,23 @@ class Deezer:
         return self.token
 
     def get_track(self, track_id):
-        method = SONG_GET_DATA
+        method = api_methods.SONG_GET_DATA
         params = {
             "SNG_ID": track_id
         }
 
         if not track_id < 0:
-            method = PAGE_TRACK
+            method = api_methods.PAGE_TRACK
 
         data = self._api_call(method, params=params)
 
         return data["results"]
 
+    def get_track_download_url(self, track, quality):
+        pass
+
     def get_tracks(self, track_ids):
-        data = self._api_call(SONG_GET_LIST_DATA, params={
+        data = self._api_call(api_methods.SONG_GET_LIST_DATA, params={
             "SNG_IDS": track_ids
         })
 
@@ -100,7 +103,7 @@ class Deezer:
         return data
 
     def get_track_lyrics(self, track_id, save_path=None):
-        data = self._api_call(SONG_LYRICS, params={
+        data = self._api_call(api_methods.SONG_LYRICS, params={
             "SNG_ID": track_id
         })
         data = data["results"]
@@ -110,7 +113,7 @@ class Deezer:
         return (data, None)
 
     def get_album(self, album_id):
-        data = self._api_call(ALBUM_GET_DATA, params={
+        data = self._api_call(api_methods.ALBUM_GET_DATA, params={
             "ALB_ID": album_id,
             "LANG": "en"
         })
@@ -118,7 +121,7 @@ class Deezer:
         return data["results"]
 
     def get_album_tracks(self, album_id):
-        data = self._api_call(ALBUM_TRACKS, params={
+        data = self._api_call(api_methods.ALBUM_TRACKS, params={
             "ALB_ID": album_id,
             "NB": -1
         })
@@ -129,7 +132,7 @@ class Deezer:
         return data["results"]["data"]
 
     def get_artist(self, artist_id):
-        data = self._api_call(PAGE_ARTIST, params={
+        data = self._api_call(api_methods.PAGE_ARTIST, params={
             "ART_ID": artist_id,
             "LANG": "en"
         })
@@ -137,7 +140,7 @@ class Deezer:
         return data["results"]
 
     def get_artist_discography(self, artist_id):
-        data = self._api_call(ARTIST_DISCOGRAPHY, params={
+        data = self._api_call(api_methods.ARTIST_DISCOGRAPHY, params={
             "ART_ID": artist_id,
             "NB": 500,
             "NB_SONGS": -1,
@@ -147,7 +150,7 @@ class Deezer:
         return data["results"]["data"]
 
     def get_artist_top_tracks(self, artist_id):
-        data = self._api_call(ARTIST_TOP_TRACKS, params={
+        data = self._api_call(api_methods.ARTIST_TOP_TRACKS, params={
             "ART_ID": artist_id,
             "NB": 100
         })
@@ -158,7 +161,7 @@ class Deezer:
         return data["results"]["data"]
 
     def get_playlist(self, playlist_id):
-        data = self._api_call(PAGE_PLAYLIST, params={
+        data = self._api_call(api_methods.PAGE_PLAYLIST, params={
             "playlist_id": playlist_id,
             "LANG": "en"
         })
@@ -166,7 +169,7 @@ class Deezer:
         return data["results"]
 
     def get_playlist_tracks(self, playlist_id):
-        data = self._api_call(PLAYLIST_TRACKS, params={
+        data = self._api_call(api_methods.PLAYLIST_TRACKS, params={
             "PLAYLIST_ID": playlist_id,
             "NB": -1
         })
@@ -177,7 +180,7 @@ class Deezer:
         return data["results"]["data"]
 
     def get_suggested_queries(self, query):
-        data = self._api_call(GET_SUGGESTED_QUERIES, params={
+        data = self._api_call(api_methods.GET_SUGGESTED_QUERIES, params={
             "QUERY": query
         })
 
@@ -189,16 +192,16 @@ class Deezer:
         return results
 
     def search_tracks(self, query, limit=30, index=0):
-        return self._legacy_search(SEARCH_TRACK, query, limit=limit, index=index)
+        return self._legacy_search(api_methods.SEARCH_TRACK, query, limit=limit, index=index)
 
     def search_albums(self, query, limit=30, index=0):
-        return self._legacy_search(SEARCH_ALBUM, query, limit=limit, index=index)
+        return self._legacy_search(api_methods.SEARCH_ALBUM, query, limit=limit, index=index)
 
     def search_artists(self, query, limit=30, index=0):
-        return self._legacy_search(SEARCH_ARTIST, query, limit=limit, index=index)
+        return self._legacy_search(api_methods.SEARCH_ARTIST, query, limit=limit, index=index)
 
     def search_playlists(self, query, limit=30, index=0):
-        return self._legacy_search(SEARCH_PLAYLIST, query, limit=limit, index=index)
+        return self._legacy_search(api_methods.SEARCH_PLAYLIST, query, limit=limit, index=index)
 
     def _legacy_search(self, method, query, limit=30, index=0):
         query = util.clean_query(query)
@@ -213,15 +216,15 @@ class Deezer:
 
     def _api_call(self, method, params={}):
         token = "null"
-        if method != GET_USER_DATA:
+        if method != api_methods.GET_USER_DATA:
             token = self.token
 
-        res = self.session.post(API_URL, json=params, params={
+        res = self.session.post(api_urls.API_URL, json=params, params={
             "api_version": "1.0",
             "api_token": token,
             "input": "3",
             "method": method
-        }, headers=HTTP_HEADERS, cookies=self.get_cookies())
+        }, headers=networking_settings.HTTP_HEADERS, cookies=self.get_cookies())
 
         data = res.json()
 
@@ -234,8 +237,8 @@ class Deezer:
         return data
 
     def _legacy_api_call(self, method, params={}):
-        res = self.session.get("{0}/{1}".format(LEGACY_API_URL, method),
-                               params=params, headers=HTTP_HEADERS, cookies=self.get_cookies())
+        res = self.session.get("{0}/{1}".format(api_urls.LEGACY_API_URL, method),
+                               params=params, headers=networking_settings.HTTP_HEADERS, cookies=self.get_cookies())
 
         data = res.json()
 
