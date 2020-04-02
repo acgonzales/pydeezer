@@ -1,3 +1,4 @@
+from functools import partial
 import json
 
 import requests
@@ -98,12 +99,15 @@ class Deezer:
 
         return data
 
-    def get_track_lyrics(self, track_id):
+    def get_track_lyrics(self, track_id, save_path=None):
         data = self._api_call(SONG_LYRICS, params={
             "SNG_ID": track_id
         })
+        data = data["results"]
 
-        return data["results"]
+        if save_path:
+            return (data, partial(util.save_lyrics, data, save_path))
+        return (data, None)
 
     def get_album(self, album_id):
         data = self._api_call(ALBUM_GET_DATA, params={
