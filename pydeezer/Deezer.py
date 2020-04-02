@@ -98,6 +98,13 @@ class Deezer:
 
         return data
 
+    def get_track_lyrics(self, track_id):
+        data = self._api_call(SONG_LYRICS, params={
+            "SNG_ID": track_id
+        })
+
+        return data["results"]
+
     def get_album(self, album_id):
         data = self._api_call(ALBUM_GET_DATA, params={
             "ALB_ID": album_id,

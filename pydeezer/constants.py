@@ -32,6 +32,7 @@ GET_USER_DATA = "deezer.getUserData"
 SONG_GET_DATA = "song.getData"
 PAGE_TRACK = "deezer.pageTrack"
 SONG_GET_LIST_DATA = "song.getListData"
+SONG_LYRICS = "song.getLyrics"
 
 # Album info
 ALBUM_GET_DATA = "album.getData"
