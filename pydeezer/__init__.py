@@ -1,6 +1,6 @@
 from . import util
 from . import exceptions
-from .constants import *
+from . import constants
 from .Deezer import Deezer
 
 name = "PyDeezer"
