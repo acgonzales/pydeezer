@@ -45,6 +45,7 @@ ARTIST_TOP_TRACKS = "artist.getTopTrack"
 
 # Playlist info
 PAGE_PLAYLIST = "deezer.pagePlaylist"
+PLAYLIST_TRACKS = "playlist.getSongs"
 
 # Search Methods
 GET_SUGGESTED_QUERIES = "search_getSuggestedQueries"

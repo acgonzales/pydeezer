@@ -165,6 +165,17 @@ class Deezer:
 
         return data["results"]
 
+    def get_playlist_tracks(self, playlist_id):
+        data = self._api_call(PLAYLIST_TRACKS, params={
+            "PLAYLIST_ID": playlist_id,
+            "NB": -1
+        })
+
+        for i, track in enumerate(data["results"]["data"]):
+            track["_POSITION"] = i + 1
+
+        return data["results"]["data"]
+
     def get_suggested_queries(self, query):
         data = self._api_call(GET_SUGGESTED_QUERIES, params={
             "QUERY": query
