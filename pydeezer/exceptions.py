@@ -4,3 +4,7 @@ class LoginError(Exception):
 
 class APIRequestError(Exception):
     pass
+
+
+class DownloadLinkDecryptionError(Exception):
+    pass

@@ -1,12 +1,17 @@
 from functools import partial
 import json
+import hashlib
+from os import path
 
 import requests
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from .constants import *
 
 from .exceptions import LoginError
 from .exceptions import APIRequestError
+from .exceptions import DownloadLinkDecryptionError
 
 from . import util
 
@@ -81,11 +86,96 @@ class Deezer:
             method = api_methods.PAGE_TRACK
 
         data = self._api_call(method, params=params)
+        data = data["results"]
 
-        return data["results"]
+        return (data, partial(self.download_track, data))
 
     def get_track_download_url(self, track, quality):
-        pass
+        try:
+            # Just in case they passed in the whole dictionary from get_track()
+            if "DATA" in track:
+                track = track["DATA"]
+
+            if not "MD5_ORIGIN" in track:
+                raise DownloadLinkDecryptionError(
+                    "MD5 is needed to decrypt the download link.")
+
+            md5_origin = track["MD5_ORIGIN"]
+            track_id = track["SNG_ID"]
+            media_version = track["MEDIA_VERSION"]
+        except ValueError:
+            raise ValueError(
+                "You have passed an invalid argument. This method needs the \"DATA\" value in the dictionary returned by the get_track() method.")
+
+        quality = self._select_valid_quality(track, quality)
+
+        magic_char = "¤"
+        step1 = magic_char.join((md5_origin,
+                                 str(quality["code"]),
+                                 track_id,
+                                 media_version))
+        m = hashlib.md5()
+        m.update(bytes([ord(x) for x in step1]))
+
+        step2 = m.hexdigest() + magic_char + step1 + magic_char
+        step2 = step2.ljust(80, " ")
+
+        cipher = Cipher(algorithms.AES(bytes('jo6aey6haid2Teih', 'ascii')),
+                        modes.ECB(), default_backend())
+
+        encryptor = cipher.encryptor()
+        step3 = encryptor.update(bytes([ord(x) for x in step2])).hex()
+
+        cdn = track["MD5_ORIGIN"][0]
+
+        return f'https://e-cdns-proxy-{cdn}.dzcdn.net/mobile/1/{step3}'
+
+    def download_track(self, track, quality, download_dir, filename=None):
+        if "DATA" in track:
+            track = track["DATA"]
+
+        url = self.get_track_download_url(track, quality)
+        blowfish_key = util.get_blowfish_key(track["SNG_ID"])
+
+        quality = self._select_valid_quality(track, quality)
+
+        title = track["SNG_TITLE"]
+        ext = quality["ext"]
+
+        if not filename:
+            filename = title + ext
+
+        if not str(filename).endswith(ext):
+            filename += ext
+
+        download_path = path.join(path.normpath(download_dir), filename)
+
+        print("Starting download of:", title)
+
+        res = self.session.get(url, cookies=self.get_cookies(), stream=True)
+        current_filesize = 0
+        i = 0
+
+        with open(download_path, "ab") as f:
+            f.seek(current_filesize)
+
+            for chunk in res.iter_content(2048):
+                if i % 3 > 0:
+                    f.write(chunk)
+                elif len(chunk) < 2048:
+                    f.write(chunk)
+                    break
+                else:
+                    cipher = Cipher(algorithms.Blowfish(blowfish_key),
+                                    modes.CBC(bytes([i for i in range(8)])),
+                                    default_backend())
+
+                    decryptor = cipher.decryptor()
+                    dec_data = decryptor.update(chunk) + decryptor.finalize()
+                    f.write(dec_data)
+                i += 1
+
+        print("Track downloaded to:", download_path)
 
     def get_tracks(self, track_ids):
         data = self._api_call(api_methods.SONG_GET_LIST_DATA, params={
@@ -102,15 +192,13 @@ class Deezer:
 
         return data
 
-    def get_track_lyrics(self, track_id, save_path=None):
+    def get_track_lyrics(self, track_id):
         data = self._api_call(api_methods.SONG_LYRICS, params={
             "SNG_ID": track_id
         })
         data = data["results"]
 
-        if save_path:
-            return (data, partial(util.save_lyrics, data, save_path))
-        return (data, None)
+        return (data, partial(util.save_lyrics, data))
 
     def get_album(self, album_id):
         data = self._api_call(api_methods.ALBUM_GET_DATA, params={
@@ -202,6 +290,21 @@ class Deezer:
 
     def search_playlists(self, query, limit=30, index=0):
         return self._legacy_search(api_methods.SEARCH_PLAYLIST, query, limit=limit, index=index)
+
+    def _select_valid_quality(self, track, quality):
+        # If the track does not support the desired quality or if the given quality is not in the TRACK_FORMAT_MAP,
+        # Use the default quality
+        if not f"FILESIZE_{quality}" in track or int(track[f"FILESIZE_{quality}"]) == 0:
+            default_size = int(track["FILESIZE"])
+
+            for key in track_formats.TRACK_FORMAT_MAP.keys():
+                if f"FILESIZE_{key}" in track and int(track[f"FILESIZE_{key}"]) == default_size:
+                    quality = track_formats.TRACK_FORMAT_MAP[key]
+                    break
+        else:
+            quality = track_formats.TRACK_FORMAT_MAP[quality]
+
+        return quality
 
     def _legacy_search(self, method, query, limit=30, index=0):
         query = util.clean_query(query)

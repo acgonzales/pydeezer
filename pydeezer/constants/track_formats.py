@@ -1,10 +1,10 @@
-FLAC = "flac"
-MP3_128 = "mp3-128"
-MP3_256 = "mp3-256"
-MP3_320 = "mp3-320"
-MP4_RA1 = "mp4-ra1"
-MP4_RA2 = "mp4-ra2"
-MP4_RA3 = "mp4-ra3"
+FLAC = "FLAC"
+MP3_128 = "MP3_128"
+MP3_256 = "MP3_256"
+MP3_320 = "MP3_320"
+MP4_RA1 = "MP4_ra1"
+MP4_RA2 = "MP4_ra2"
+MP4_RA3 = "MP4_ra3"
 
 TRACK_FORMAT_MAP = {
     FLAC: {

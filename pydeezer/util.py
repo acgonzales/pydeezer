@@ -39,3 +39,16 @@ def save_lyrics(lyric_data, save_path):
 
 def get_text_md5(text, encoding="UTF-8"):
     return hashlib.md5(str(text).encode(encoding)).hexdigest()
+
+
+def get_blowfish_key(track_id):
+    secret = 'g4el58wc0zvf9na1'
+
+    m = hashlib.md5()
+    m.update(bytes([ord(x) for x in track_id]))
+    id_md5 = m.hexdigest()
+
+    blowfish_key = bytes(([(ord(id_md5[i]) ^ ord(id_md5[i+16]) ^ ord(secret[i]))
+                           for i in range(16)]))
+
+    return blowfish_key
