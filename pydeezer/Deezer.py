@@ -91,6 +91,10 @@ class Deezer:
         return (data, partial(self.download_track, data))
 
     def get_track_download_url(self, track, quality):
+        # Decryption algo got from: https://git.fuwafuwa.moe/toad/ayeBot/src/branch/master/bot.py;
+        # and https://notabug.org/deezpy-dev/Deezpy/src/master/deezpy.py
+        # Huge thanks!
+        
         try:
             # Just in case they passed in the whole dictionary from get_track()
             if "DATA" in track:
