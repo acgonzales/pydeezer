@@ -125,7 +125,7 @@ class Deezer:
 
         return tags
 
-    def get_track_download_url(self, track, quality, renew=False):
+    def get_track_download_url(self, track, quality=None, renew=False):
         # Decryption algo got from: https://git.fuwafuwa.moe/toad/ayeBot/src/branch/master/bot.py;
         # and https://notabug.org/deezpy-dev/Deezpy/src/master/deezpy.py
         # Huge thanks!
