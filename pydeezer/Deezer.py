@@ -273,6 +273,9 @@ class Deezer:
 
         return data["results"]
 
+    def get_album_poster(self, album, size=500, ext="jpg"):
+        return self._get_poster(album["ALB_PICTURE"], size=size, ext=ext)
+
     def get_album_tracks(self, album_id):
         data = self._api_call(api_methods.ALBUM_TRACKS, params={
             "ALB_ID": album_id,
@@ -291,6 +294,12 @@ class Deezer:
         })
 
         return data["results"]
+
+    def get_artist_poster(self, artist, size=500, ext="jpg"):
+        if "DATA" in artist:
+            artist = artist["DATA"]
+
+        return self._get_poster(artist["ART_PICTURE"], size=size, ext=ext)
 
     def get_artist_discography(self, artist_id):
         data = self._api_call(api_methods.ARTIST_DISCOGRAPHY, params={
@@ -366,6 +375,10 @@ class Deezer:
         })
 
         return data["data"]
+
+    def _get_poster(self, poster_id, size=500, ext="jpg"):
+        url = f'https://e-cdns-images.dzcdn.net/images/cover/{poster_id}/{size}x{size}.{ext}'
+        return self.session.get(url, params=networking_settings.HTTP_HEADERS, cookies=self.get_cookies()).content
 
     def _select_valid_quality(self, track, quality):
         # If the track does not support the desired quality or if the given quality is not in the TRACK_FORMAT_MAP,
