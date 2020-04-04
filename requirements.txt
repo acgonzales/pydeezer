@@ -1,5 +1,10 @@
 certifi==2019.11.28
+cffi==1.14.0
 chardet==3.0.4
+cryptography==2.9
 idna==2.9
+pkg-resources==0.0.0
+pycparser==2.20
 requests==2.23.0
+six==1.14.0
 urllib3==1.25.8
