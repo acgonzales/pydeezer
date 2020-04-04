@@ -172,7 +172,7 @@ class Deezer:
 
         return f'https://e-cdns-proxy-{cdn}.dzcdn.net/mobile/1/{step3}'
 
-    def download_track(self, track, quality, download_dir, filename=None, renew=False):
+    def download_track(self, track, download_dir, quality=None, filename=None, renew=False):
         if "DATA" in track:
             track = track["DATA"]
 
@@ -351,7 +351,7 @@ class Deezer:
     def _select_valid_quality(self, track, quality):
         # If the track does not support the desired quality or if the given quality is not in the TRACK_FORMAT_MAP,
         # Use the default quality
-        if not f"FILESIZE_{quality}" in track or int(track[f"FILESIZE_{quality}"]) == 0:
+        if not quality or not f"FILESIZE_{quality}" in track or int(track[f"FILESIZE_{quality}"]) == 0:
             default_size = int(track["FILESIZE"])
 
             for key in track_formats.TRACK_FORMAT_MAP.keys():
