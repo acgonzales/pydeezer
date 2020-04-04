@@ -356,6 +356,17 @@ class Deezer:
     def search_playlists(self, query, limit=30, index=0):
         return self._legacy_search(api_methods.SEARCH_PLAYLIST, query, limit=limit, index=index)
 
+    def _legacy_search(self, method, query, limit=30, index=0):
+        query = util.clean_query(query)
+
+        data = self._legacy_api_call(method, {
+            "q": query,
+            "limit": limit,
+            "index": index
+        })
+
+        return data["data"]
+
     def _select_valid_quality(self, track, quality):
         # If the track does not support the desired quality or if the given quality is not in the TRACK_FORMAT_MAP,
         # Use the default quality
@@ -370,17 +381,6 @@ class Deezer:
             quality = track_formats.TRACK_FORMAT_MAP[quality]
 
         return quality
-
-    def _legacy_search(self, method, query, limit=30, index=0):
-        query = util.clean_query(query)
-
-        data = self._legacy_api_call(method, {
-            "q": query,
-            "limit": limit,
-            "index": index
-        })
-
-        return data["data"]
 
     def _api_call(self, method, params={}):
         token = "null"
