@@ -94,7 +94,7 @@ class Deezer:
         # Decryption algo got from: https://git.fuwafuwa.moe/toad/ayeBot/src/branch/master/bot.py;
         # and https://notabug.org/deezpy-dev/Deezpy/src/master/deezpy.py
         # Huge thanks!
-        
+
         if renew:
             track = self.get_track(track["SNG_ID"])
 
@@ -205,7 +205,22 @@ class Deezer:
         })
         data = data["results"]
 
-        return (data, partial(util.save_lyrics, data))
+        return (data, partial(self.save_lyrics, data))
+
+    def save_lyrics(self, lyric_data, save_path):
+        if not str(save_path).endswith(".lrc"):
+            save_path += ".lrc"
+
+        with open(save_path, "w") as f:
+            sync_data = lyric_data["LYRICS_SYNC_JSON"]
+
+            for line in sync_data:
+                if str(line["line"]):
+                    f.write("{0}{1}".format(
+                        line["lrc_timestamp"], line["line"]))
+                f.write("\n")
+
+        return True
 
     def get_album(self, album_id):
         data = self._api_call(api_methods.ALBUM_GET_DATA, params={
