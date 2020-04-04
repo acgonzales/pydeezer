@@ -88,7 +88,12 @@ class Deezer:
         data = self._api_call(method, params=params)
         data = data["results"]
 
-        return (data, partial(self.download_track, data))
+        return {
+            "info": data,
+            "download": partial(self.download_track, data),
+            "tags": self.get_track_tags(data),
+            "get_tag": partial(self.get_track_tags, data)
+        }
 
     def get_track_tags(self, track, separator=", "):
         if "DATA" in track:
@@ -240,7 +245,10 @@ class Deezer:
         })
         data = data["results"]
 
-        return (data, partial(self.save_lyrics, data))
+        return {
+            "info": data,
+            "save": partial(self.save_lyrics, data)
+        }
 
     def save_lyrics(self, lyric_data, save_path):
         if not str(save_path).endswith(".lrc"):
