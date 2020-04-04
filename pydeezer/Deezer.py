@@ -90,11 +90,14 @@ class Deezer:
 
         return (data, partial(self.download_track, data))
 
-    def get_track_download_url(self, track, quality):
+    def get_track_download_url(self, track, quality, renew=False):
         # Decryption algo got from: https://git.fuwafuwa.moe/toad/ayeBot/src/branch/master/bot.py;
         # and https://notabug.org/deezpy-dev/Deezpy/src/master/deezpy.py
         # Huge thanks!
         
+        if renew:
+            track = self.get_track(track["SNG_ID"])
+
         try:
             # Just in case they passed in the whole dictionary from get_track()
             if "DATA" in track:
@@ -134,11 +137,11 @@ class Deezer:
 
         return f'https://e-cdns-proxy-{cdn}.dzcdn.net/mobile/1/{step3}'
 
-    def download_track(self, track, quality, download_dir, filename=None):
+    def download_track(self, track, quality, download_dir, filename=None, renew=False):
         if "DATA" in track:
             track = track["DATA"]
 
-        url = self.get_track_download_url(track, quality)
+        url = self.get_track_download_url(track, quality, renew=renew)
         blowfish_key = util.get_blowfish_key(track["SNG_ID"])
 
         quality = self._select_valid_quality(track, quality)
