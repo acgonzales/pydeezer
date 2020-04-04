@@ -90,6 +90,41 @@ class Deezer:
 
         return (data, partial(self.download_track, data))
 
+    def get_track_tags(self, track, separator=", "):
+        if "DATA" in track:
+            track = track["DATA"]
+
+        album_data = self.get_album(track["ALB_ID"])
+
+        main_artists = track["SNG_CONTRIBUTORS"]["main_artist"]
+        artists = main_artists[0]
+        for i in range(1, len(main_artists)):
+            artists += separator + main_artists[i]
+
+        # I'd like to put some genre here, let me figure it out later
+        tags = {
+            "title": track["SNG_TITLE"],
+            "artist": artists,
+            "album": track["ALB_TITLE"],
+            "label": album_data["LABEL_NAME"],
+            "date": track["PHYSICAL_RELEASE_DATE"],
+            "discnumber": track["DISK_NUMBER"],
+            "tracknumber": track["TRACK_NUMBER"],
+            "isrc": track["ISRC"],
+            "copyright": track["COPYRIGHT"]
+        }
+
+        if "author" in track["SNG_CONTRIBUTORS"]:
+            _authors = track["SNG_CONTRIBUTORS"]["author"]
+
+            authors = _authors[0]
+            for i in range(1, len(_authors)):
+                authors += separator + _authors[i]
+
+            tags["author"]
+
+        return tags
+
     def get_track_download_url(self, track, quality, renew=False):
         # Decryption algo got from: https://git.fuwafuwa.moe/toad/ayeBot/src/branch/master/bot.py;
         # and https://notabug.org/deezpy-dev/Deezpy/src/master/deezpy.py
