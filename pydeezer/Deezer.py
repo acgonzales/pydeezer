@@ -6,6 +6,9 @@ from os import path
 import requests
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from mutagen.id3 import ID3, APIC
+from mutagen.easyid3 import EasyID3
+from mutagen.mp3 import MP3
 
 from .constants import *
 
@@ -95,6 +98,19 @@ class Deezer:
             "get_tag": partial(self.get_track_tags, data)
         }
 
+    def get_track_valid_quality(self, track):
+        if "DATA" in track:
+            track = track["DATA"]
+
+        qualities = []
+        for key in track_formats.TRACK_FORMAT_MAP:
+            k = f"FILESIZE_{key}"
+            if k in track:
+                if str(track[k]) != "0":
+                    qualities.append(key)
+
+        return qualities
+
     def get_track_tags(self, track, separator=", "):
         if "DATA" in track:
             track = track["DATA"]
@@ -106,6 +122,9 @@ class Deezer:
         for i in range(1, len(main_artists)):
             artists += separator + main_artists[i]
 
+        total_tracks = album_data["NUMBER_TRACK"]
+        track_number = str(track["TRACK_NUMBER"]) + "/" + str(total_tracks)
+
         # I'd like to put some genre here, let me figure it out later
         tags = {
             "title": track["SNG_TITLE"],
@@ -114,7 +133,7 @@ class Deezer:
             "label": album_data["LABEL_NAME"],
             "date": track["PHYSICAL_RELEASE_DATE"],
             "discnumber": track["DISK_NUMBER"],
-            "tracknumber": track["TRACK_NUMBER"],
+            "tracknumber": track_number,
             "isrc": track["ISRC"],
             "copyright": track["COPYRIGHT"]
         }
@@ -126,7 +145,7 @@ class Deezer:
             for i in range(1, len(_authors)):
                 authors += separator + _authors[i]
 
-            tags["author"]
+            tags["author"] = authors
 
         return tags
 
@@ -177,7 +196,7 @@ class Deezer:
 
         return f'https://e-cdns-proxy-{cdn}.dzcdn.net/mobile/1/{step3}'
 
-    def download_track(self, track, download_dir, quality=None, filename=None, renew=False):
+    def download_track(self, track, download_dir, quality=None, filename=None, renew=False, with_metadata=True):
         if "DATA" in track:
             track = track["DATA"]
 
@@ -377,13 +396,24 @@ class Deezer:
         return data["data"]
 
     def _get_poster(self, poster_id, size=500, ext="jpg"):
+        ext = ext.lower()
+        if ext != "jpg" and ext != "png":
+            raise ValueError("Image extension should only be jpg or png!")
+
         url = f'https://e-cdns-images.dzcdn.net/images/cover/{poster_id}/{size}x{size}.{ext}'
-        return self.session.get(url, params=networking_settings.HTTP_HEADERS, cookies=self.get_cookies()).content
+        return {
+            "image": self.session.get(url, params=networking_settings.HTTP_HEADERS, cookies=self.get_cookies()).content,
+            "size": (500, 500),
+            "ext": "jpg",
+            "mime_type": "image/jpeg" if ext == "jpg" else "image/png"
+        }
 
     def _select_valid_quality(self, track, quality):
         # If the track does not support the desired quality or if the given quality is not in the TRACK_FORMAT_MAP,
         # Use the default quality
-        if not quality or not f"FILESIZE_{quality}" in track or int(track[f"FILESIZE_{quality}"]) == 0:
+        valid_qualities = self.get_track_valid_quality(track)
+
+        if not quality or not quality in valid_qualities:
             default_size = int(track["FILESIZE"])
 
             for key in track_formats.TRACK_FORMAT_MAP.keys():
