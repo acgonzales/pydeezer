@@ -85,7 +85,7 @@ class Deezer:
             "SNG_ID": track_id
         }
 
-        if not track_id < 0:
+        if not int(track_id) < 0:
             method = api_methods.PAGE_TRACK
 
         data = self._api_call(method, params=params)
@@ -134,6 +134,7 @@ class Deezer:
         total_tracks = album_data["NUMBER_TRACK"]
         track_number = str(track["TRACK_NUMBER"]) + "/" + str(total_tracks)
 
+        cover = self.get_album_poster(album_data, size=1000)
         # I'd like to put some genre here, let me figure it out later
         tags = {
             "title": title,
@@ -145,7 +146,12 @@ class Deezer:
             "discnumber": track["DISK_NUMBER"],
             "tracknumber": track_number,
             "isrc": track["ISRC"],
-            "copyright": track["COPYRIGHT"]
+            "copyright": track["COPYRIGHT"],
+            "albumart": APIC(
+                mime=cover["mime_type"],
+                type=3,   
+                data=cover["image"]
+            )
         }
 
         if "author" in track["SNG_CONTRIBUTORS"]:
@@ -165,13 +171,12 @@ class Deezer:
         # Huge thanks!
 
         if renew:
-            track = self.get_track(track["SNG_ID"])
+            track = self.get_track(track["SNG_ID"])["info"]
 
         try:
             # Just in case they passed in the whole dictionary from get_track()
             if "DATA" in track:
                 track = track["DATA"]
-
             if not "MD5_ORIGIN" in track:
                 raise DownloadLinkDecryptionError(
                     "MD5 is needed to decrypt the download link.")
@@ -206,16 +211,18 @@ class Deezer:
 
         return f'https://e-cdns-proxy-{cdn}.dzcdn.net/mobile/1/{step3}'
 
-    def download_track(self, track, download_dir, quality=None, filename=None, renew=False, with_metadata=True):
+    def download_track(self, track, download_dir, quality=None, filename=None, renew=False, with_metadata=True, tag_separator=", "):
         if "DATA" in track:
             track = track["DATA"]
+
+        tags = self.get_track_tags(track, separator=tag_separator)
 
         url = self.get_track_download_url(track, quality, renew=renew)
         blowfish_key = util.get_blowfish_key(track["SNG_ID"])
 
         quality = self._select_valid_quality(track, quality)
 
-        title = track["SNG_TITLE"]
+        title = tags["title"]
         ext = quality["ext"]
 
         if not filename:
@@ -250,6 +257,13 @@ class Deezer:
                     dec_data = decryptor.update(chunk) + decryptor.finalize()
                     f.write(dec_data)
                 i += 1
+
+        if with_metadata:
+            if ext.lower() == ".mp3":
+                self._write_mp3_tags(download_path, track)
+            else:
+                # TODO: Write FLAC tags
+                pass
 
         print("Track downloaded to:", download_path)
 
@@ -413,10 +427,35 @@ class Deezer:
         url = f'https://e-cdns-images.dzcdn.net/images/cover/{poster_id}/{size}x{size}.{ext}'
         return {
             "image": self.session.get(url, params=networking_settings.HTTP_HEADERS, cookies=self.get_cookies()).content,
-            "size": (500, 500),
-            "ext": "jpg",
+            "size": (size, size),
+            "ext": ext,
             "mime_type": "image/jpeg" if ext == "jpg" else "image/png"
         }
+
+    def _write_mp3_tags(self, path, track, tags=None):
+        if "DATA" in track:
+            track = track["DATA"]
+
+        if not tags:
+            tags = self.get_track_tags(track)
+
+        audio = MP3(path, ID3=EasyID3)
+        audio.delete()
+        EasyID3.RegisterTextKey("label", "TPUB")
+        # EasyID3.RegisterTextKey("albumart", "APIC")
+
+        cover = tags["albumart"]
+        del tags["albumart"]
+
+        for key, val in tags.items():
+            audio[key] = str(val)
+        audio.save()
+
+        cover_handle = ID3(path)
+        cover_handle["APIC"] = cover
+        cover_handle.save(path)
+
+        return True
 
     def _select_valid_quality(self, track, quality):
         # If the track does not support the desired quality or if the given quality is not in the TRACK_FORMAT_MAP,
