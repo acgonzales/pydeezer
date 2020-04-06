@@ -122,14 +122,24 @@ class Deezer:
         for i in range(1, len(main_artists)):
             artists += separator + main_artists[i]
 
+        title = track["SNG_TITLE"]
+        if "featuring" in track["SNG_CONTRIBUTORS"]:
+            featuring_artists_data = track["SNG_CONTRIBUTORS"]["featuring"]
+            featuring_artists = featuring_artists_data[0]
+            for i in range(1, len(featuring_artists_data)):
+                featuring_artists += separator + featuring_artists_data[i]
+
+            title += f" (feat. {featuring_artists})"
+
         total_tracks = album_data["NUMBER_TRACK"]
         track_number = str(track["TRACK_NUMBER"]) + "/" + str(total_tracks)
 
         # I'd like to put some genre here, let me figure it out later
         tags = {
-            "title": track["SNG_TITLE"],
+            "title": title,
             "artist": artists,
             "album": track["ALB_TITLE"],
+            "albumartist": track["ART_NAME"],
             "label": album_data["LABEL_NAME"],
             "date": track["PHYSICAL_RELEASE_DATE"],
             "discnumber": track["DISK_NUMBER"],
