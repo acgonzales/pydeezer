@@ -260,7 +260,7 @@ class Deezer:
 
         if with_metadata:
             if ext.lower() == ".mp3":
-                self._write_mp3_tags(download_path, track)
+                self._write_mp3_tags(download_path, track, tags=tags)
             else:
                 # TODO: Write FLAC tags
                 pass
