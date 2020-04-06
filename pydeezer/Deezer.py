@@ -6,6 +6,8 @@ from os import path
 import requests
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+import mutagen
+from mutagen import File
 from mutagen.id3 import ID3, APIC
 from mutagen.easyid3 import EasyID3
 from mutagen.mp3 import MP3
@@ -147,11 +149,7 @@ class Deezer:
             "tracknumber": track_number,
             "isrc": track["ISRC"],
             "copyright": track["COPYRIGHT"],
-            "albumart": APIC(
-                mime=cover["mime_type"],
-                type=3,   
-                data=cover["image"]
-            )
+            "_albumart": cover, 
         }
 
         if "author" in track["SNG_CONTRIBUTORS"]:
@@ -272,11 +270,10 @@ class Deezer:
                 i += 1
 
         if with_metadata:
-            if ext.lower() == ".mp3":
-                self._write_mp3_tags(download_path, track, tags=tags)
+            if ext.lower() == ".flac":
+                self._write_flac_tags(download_path, track, tags=tags)
             else:
-                # TODO: Write FLAC tags
-                pass
+                self._write_mp3_tags(download_path, track, tags=tags)
         
         if with_lyrics:
             lyrics_path = path.join(download_dir, title)
@@ -459,18 +456,45 @@ class Deezer:
         audio = MP3(path, ID3=EasyID3)
         audio.delete()
         EasyID3.RegisterTextKey("label", "TPUB")
-        # EasyID3.RegisterTextKey("albumart", "APIC")
 
-        cover = tags["albumart"]
-        del tags["albumart"]
+        cover = tags["_albumart"]
+        del tags["_albumart"]
 
         for key, val in tags.items():
             audio[key] = str(val)
         audio.save()
 
         cover_handle = ID3(path)
-        cover_handle["APIC"] = cover
+        cover_handle["APIC"] = APIC(
+            type=3,
+            mime=cover["mime_type"],
+            data=cover["image"]
+        )
         cover_handle.save(path)
+
+        return True
+
+    def _write_flac_tags(self, path, track, tags=None):
+        if "DATA" in track:
+            track = track["DATA"]
+
+        if not tags:
+            tags = self.get_track_tags(track)
+
+        audio = File(path)
+        audio.delete()
+
+        pic = mutagen.flac.Picture()
+        pic.data = tags["_albumart"]["image"]
+
+        audio.clear_pictures()
+        audio.add_picture(pic)
+        
+        del tags["_albumart"]
+
+        for key, val in tags.items():
+            audio[key] = str(val)
+        audio.save()
 
         return True
 
