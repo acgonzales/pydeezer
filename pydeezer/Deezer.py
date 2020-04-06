@@ -212,10 +212,17 @@ class Deezer:
         return f'https://e-cdns-proxy-{cdn}.dzcdn.net/mobile/1/{step3}'
 
     def download_track(self, track, download_dir, quality=None, filename=None, renew=False, with_metadata=True, with_lyrics=True, tag_separator=", "):
-        if "LYRICS" in track:
-            lyric_data = track["LYRICS"]
-        else:
-            with_lyrics = False
+        if with_lyrics:
+            if "LYRICS" in track:
+                lyric_data = track["LYRICS"]
+            else:
+                try:
+                    if "DATA" in track:
+                        lyric_data = self.get_track_lyrics(track["DATA"]["SNG_ID"])["info"]
+                    else:
+                        lyric_data = self.get_track_lyrics(track["SNG_ID"])["info"]
+                except APIRequestError:
+                    with_lyrics = False
         
         if "DATA" in track:
             track = track["DATA"]
