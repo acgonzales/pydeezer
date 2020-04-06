@@ -5,7 +5,7 @@ A package to search and download musics on [Deezer](https://www.deezer.com/en/).
 ## Installation
 
 ```bash
-pip install pydeezer
+pip install py-deezer
 ```
 
 ## Usage
