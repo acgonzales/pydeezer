@@ -222,7 +222,7 @@ class Deezer:
         current_filesize = 0
         i = 0
 
-        with open(download_path, "ab") as f:
+        with open(download_path, "wb") as f:
             f.seek(current_filesize)
 
             for chunk in res.iter_content(2048):
