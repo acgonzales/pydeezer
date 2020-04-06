@@ -211,7 +211,12 @@ class Deezer:
 
         return f'https://e-cdns-proxy-{cdn}.dzcdn.net/mobile/1/{step3}'
 
-    def download_track(self, track, download_dir, quality=None, filename=None, renew=False, with_metadata=True, tag_separator=", "):
+    def download_track(self, track, download_dir, quality=None, filename=None, renew=False, with_metadata=True, with_lyrics=True, tag_separator=", "):
+        if "LYRICS" in track:
+            lyric_data = track["LYRICS"]
+        else:
+            with_lyrics = False
+        
         if "DATA" in track:
             track = track["DATA"]
 
@@ -231,7 +236,8 @@ class Deezer:
         if not str(filename).endswith(ext):
             filename += ext
 
-        download_path = path.join(path.normpath(download_dir), filename)
+        download_dir = path.normpath(download_dir)
+        download_path = path.join(download_dir, filename)
 
         print("Starting download of:", title)
 
@@ -264,6 +270,10 @@ class Deezer:
             else:
                 # TODO: Write FLAC tags
                 pass
+        
+        if with_lyrics:
+            lyrics_path = path.join(download_dir, title)
+            self.save_lyrics(lyric_data, lyrics_path)
 
         print("Track downloaded to:", download_path)
 
