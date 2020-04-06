@@ -4,7 +4,7 @@ with open("README.md", "r") as f:
     long_description = f.read()
 
 setuptools.setup(
-    name="pydeezer-chr1st",
+    name="pydeezer",
     version="0.0.1", 
     author="Aaron Gonzales", 
     author_email="aaroncgonzales.dev@gmail.com",
