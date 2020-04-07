@@ -11,6 +11,7 @@ from mutagen import File
 from mutagen.id3 import ID3, APIC
 from mutagen.easyid3 import EasyID3
 from mutagen.mp3 import MP3
+from tqdm import tqdm
 
 from .constants import *
 
@@ -24,11 +25,10 @@ from . import util
 class Deezer:
     def __init__(self, arl=None):
         """Instantiates a Deezer object
-        
+
         Keyword Arguments:
             arl {str} -- Login using the given arl (default: {None})
         """
-
 
         self.session = requests.session()
         self.user = None
@@ -39,14 +39,13 @@ class Deezer:
 
     def login_via_arl(self, arl):
         """Logs in to Deezer using the given
-        
+
         Arguments:
             arl {[type]} -- [description]
-        
+
         Returns:
             dict -- User data given by the Deezer API
         """
-
 
         self.set_cookie("arl", arl)
         self.get_user_data()
@@ -55,11 +54,10 @@ class Deezer:
 
     def get_user_data(self):
         """Gets the data of the user, this will only work arl is the cookie. Make sure you have run login_via_arl() before using this.
-        
+
         Raises:
             LoginError: Will raise if the arl given is not identified by Deezer
         """
-
 
         data = self._api_call(api_methods.GET_USER_DATA)["results"]
 
@@ -87,16 +85,15 @@ class Deezer:
 
     def set_cookie(self, key, value, domain=api_urls.DEEZER_URL, path="/"):
         """Sets the cookie in the given domain
-        
+
         Arguments:
             key {str} -- The key of the cookie
             value {str} -- The value of the cookie
-        
+
         Keyword Arguments:
             domain {str} -- The domain of the cookie (default: {api_urls.DEEZER_URL})
             path {str} -- The path of the cookie (default: {"/"})
         """
-
 
         cookie = requests.cookies.create_cookie(
             name=key, value=value, domain=domain)
@@ -104,11 +101,10 @@ class Deezer:
 
     def get_cookies(self):
         """Get cookies in the domain of {api_urls.DEEZER_URL}
-        
+
         Returns:
             dict -- Cookies
         """
-
 
         if api_urls.DEEZER_URL in self.session.cookies.list_domains():
             return self.session.cookies.get_dict(api_urls.DEEZER_URL)
@@ -116,11 +112,10 @@ class Deezer:
 
     def get_sid(self):
         """Gets the SID of the current {session}
-        
+
         Returns:
             str -- SID
         """
-
 
         res = self.session.get(
             api_urls.API_URL, headers=networking_settings.HTTP_HEADERS, cookies=self.get_cookies())
@@ -128,11 +123,10 @@ class Deezer:
 
     def get_token(self):
         """Gets the token of the current {session}
-        
+
         Returns:
             str -- Token
         """
-
 
         if not self.token:
             self.get_user_data()
@@ -140,14 +134,13 @@ class Deezer:
 
     def get_track(self, track_id):
         """Gets the track info using the Deezer API
-        
+
         Arguments:
             track_id {str} -- Track Id
-        
+
         Returns:
             dict -- Dictionary that contains the {info}, {download} partial function, {tags}, and {get_tag} partial function.
         """
-
 
         method = api_methods.SONG_GET_DATA
         params = {
@@ -169,10 +162,10 @@ class Deezer:
 
     def get_track_valid_quality(self, track):
         """Gets the valid download qualities of the given track
-        
+
         Arguments:
             track {dict} -- Track dictionary, similar to the {info} value that is returned {using get_track()}
-        
+
         Returns:
             list -- List of keys of the valid qualities from the {track_formats.TRACK_FORMAT_MAP}
         """
@@ -190,27 +183,29 @@ class Deezer:
 
     def get_track_tags(self, track, separator=", "):
         """Gets the possible ID3 tags of the track.
-        
+
         Arguments:
             track {dict} -- Track dictionary, similar to the {info} value that is returned {using get_track()}
-        
+
         Keyword Arguments:
             separator {str} -- Separator to separate multiple artists (default: {", "})
-        
+
         Returns:
             dict -- Tags
         """
-
 
         if "DATA" in track:
             track = track["DATA"]
 
         album_data = self.get_album(track["ALB_ID"])
 
-        main_artists = track["SNG_CONTRIBUTORS"]["main_artist"]
-        artists = main_artists[0]
-        for i in range(1, len(main_artists)):
-            artists += separator + main_artists[i]
+        if "main_artist" in track["SNG_CONTRIBUTORS"]:
+            main_artists = track["SNG_CONTRIBUTORS"]["main_artist"]
+            artists = main_artists[0]
+            for i in range(1, len(main_artists)):
+                artists += separator + main_artists[i]
+        else:
+            artists = track["ART_NAME"]
 
         title = track["SNG_TITLE"]
         if "featuring" in track["SNG_CONTRIBUTORS"]:
@@ -238,7 +233,7 @@ class Deezer:
             "tracknumber": track_number,
             "isrc": track["ISRC"],
             "copyright": track["COPYRIGHT"],
-            "_albumart": cover, 
+            "_albumart": cover,
         }
 
         if "author" in track["SNG_CONTRIBUTORS"]:
@@ -254,18 +249,18 @@ class Deezer:
 
     def get_track_download_url(self, track, quality=None, renew=False):
         """Gets and decrypts the download url of the given track in the given quality
-        
+
         Arguments:
             track {dict} -- Track dictionary, similar to the {info} value that is returned {using get_track()}
-        
+
         Keyword Arguments:
             quality {str} -- Use values from {constants.track_formats}, will get the default quality if None or an invalid is given. (default: {None})
             renew {bool} -- Will renew the track object (default: {False})
-        
+
         Raises:
             DownloadLinkDecryptionError: Will be raised if the track dictionary does not have an MD5
             ValueError: Will be raised if valid track argument was given
-        
+
         Returns:
             str -- Download url
         """
@@ -317,11 +312,11 @@ class Deezer:
 
     def download_track(self, track, download_dir, quality=None, filename=None, renew=False, with_metadata=True, with_lyrics=True, tag_separator=", "):
         """Downloads the given track
-        
+
         Arguments:
             track {dict} -- Track dictionary, similar to the {info} value that is returned {using get_track()}
             download_dir {str} -- Directory (without {filename}) where the file is to be saved.
-        
+
         Keyword Arguments:
             quality {str} -- Use values from {constants.track_formats}, will get the default quality if None or an invalid is given. (default: {None})
             filename {str} -- Filename with or without the extension (default: {None})
@@ -330,7 +325,6 @@ class Deezer:
             with_lyrics {bool} -- If true, will find and save lyrics of the given track. (default: {True})
             tag_separator {str} -- Separator to separate multiple artists (default: {", "})
         """
-        
 
         if with_lyrics:
             if "LYRICS" in track:
@@ -338,12 +332,14 @@ class Deezer:
             else:
                 try:
                     if "DATA" in track:
-                        lyric_data = self.get_track_lyrics(track["DATA"]["SNG_ID"])["info"]
+                        lyric_data = self.get_track_lyrics(
+                            track["DATA"]["SNG_ID"])["info"]
                     else:
-                        lyric_data = self.get_track_lyrics(track["SNG_ID"])["info"]
+                        lyric_data = self.get_track_lyrics(
+                            track["SNG_ID"])["info"]
                 except APIRequestError:
                     with_lyrics = False
-        
+
         if "DATA" in track:
             track = track["DATA"]
 
@@ -363,40 +359,54 @@ class Deezer:
         if not str(filename).endswith(ext):
             filename += ext
 
+        filename = util.clean_filename(filename)
+
         download_dir = path.normpath(download_dir)
         download_path = path.join(download_dir, filename)
 
         print("Starting download of:", title)
 
         res = self.session.get(url, cookies=self.get_cookies(), stream=True)
+        chunk_size = 2048
+        total_filesize = int(res.headers["Content-Length"])
         current_filesize = 0
         i = 0
 
+        pbar = tqdm(res.iter_content(chunk_size), total=total_filesize,
+                    unit="B", unit_scale=True, unit_divisor=1024, leave=False, desc=title)
         with open(download_path, "wb") as f:
             f.seek(current_filesize)
 
-            for chunk in res.iter_content(2048):
+            for chunk in pbar:
+                chunk_len = len(chunk)
                 if i % 3 > 0:
                     f.write(chunk)
-                elif len(chunk) < 2048:
+                elif len(chunk) < chunk_size:
                     f.write(chunk)
+                    pbar.update(chunk_len)
                     break
                 else:
                     cipher = Cipher(algorithms.Blowfish(blowfish_key),
-                                    modes.CBC(bytes([i for i in range(8)])),
+                                    modes.CBC(
+                                        bytes([i for i in range(8)])),
                                     default_backend())
 
                     decryptor = cipher.decryptor()
-                    dec_data = decryptor.update(chunk) + decryptor.finalize()
+                    dec_data = decryptor.update(
+                        chunk) + decryptor.finalize()
                     f.write(dec_data)
+                    chunk_len = len(dec_data)
                 i += 1
+                current_filesize += chunk_size
+                pbar.update(chunk_len)
 
+        pbar.close()
         if with_metadata:
             if ext.lower() == ".flac":
                 self._write_flac_tags(download_path, track, tags=tags)
             else:
                 self._write_mp3_tags(download_path, track, tags=tags)
-        
+
         if with_lyrics:
             lyrics_path = path.join(download_dir, title)
             self.save_lyrics(lyric_data, lyrics_path)
@@ -405,14 +415,13 @@ class Deezer:
 
     def get_tracks(self, track_ids):
         """Gets the list of the tracks that corresponds with the given {track_ids}
-        
+
         Arguments:
             track_ids {list} -- List of track id
-        
+
         Returns:
             dict -- List of tracks
         """
-
 
         data = self._api_call(api_methods.SONG_GET_LIST_DATA, params={
             "SNG_IDS": track_ids
@@ -430,14 +439,13 @@ class Deezer:
 
     def get_track_lyrics(self, track_id):
         """Gets the lyrics data of the given {track_id}
-        
+
         Arguments:
             track_id {str} -- Track Id
-        
+
         Returns:
             dict -- Dictionary that containts the {info}, and {save} partial function.
         """
-
 
         data = self._api_call(api_methods.SONG_LYRICS, params={
             "SNG_ID": track_id
@@ -451,15 +459,14 @@ class Deezer:
 
     def save_lyrics(self, lyric_data, save_path):
         """Saves the {lyric_data} into a .lrc file.
-        
+
         Arguments:
             lyric_data {dict} -- The 'info' value returned from {get_track_lyrics()}
             save_path {str} -- Full path on where the file is to be saved
-        
+
         Returns:
             bool -- Operation success
         """
-
 
         if not str(save_path).endswith(".lrc"):
             save_path += ".lrc"
@@ -477,14 +484,13 @@ class Deezer:
 
     def get_album(self, album_id):
         """Gets the album data of the given {album_id}
-        
+
         Arguments:
             album_id {str} -- Album Id
-        
+
         Returns:
             dict -- Album data
         """
-
 
         data = self._api_call(api_methods.ALBUM_GET_DATA, params={
             "ALB_ID": album_id,
@@ -495,31 +501,29 @@ class Deezer:
 
     def get_album_poster(self, album, size=500, ext="jpg"):
         """Gets the album poster as a binary data
-        
+
         Arguments:
             album {dict} -- Album data
-        
+
         Keyword Arguments:
             size {int} -- Size of the image, {size}x{size} (default: {500})
             ext {str} -- Extension of the image, can be ('.jpg' or '.png') (default: {"jpg"})
-        
+
         Returns:
             bytes -- Binary data of the image
         """
-
 
         return self._get_poster(album["ALB_PICTURE"], size=size, ext=ext)
 
     def get_album_tracks(self, album_id):
         """Gets the tracks of the given {album_id}
-        
+
         Arguments:
             album_id {str} -- Album Id
-        
+
         Returns:
             list -- List of tracks
         """
-
 
         data = self._api_call(api_methods.ALBUM_TRACKS, params={
             "ALB_ID": album_id,
@@ -533,14 +537,13 @@ class Deezer:
 
     def get_artist(self, artist_id):
         """Gets the artist data from the given {artist_id}
-        
+
         Arguments:
             artist_id {str} -- Artist Id
-        
+
         Returns:
             dict -- Artist data
         """
-
 
         data = self._api_call(api_methods.PAGE_ARTIST, params={
             "ART_ID": artist_id,
@@ -551,18 +554,17 @@ class Deezer:
 
     def get_artist_poster(self, artist, size=500, ext="jpg"):
         """Gets the artist poster as a binary data
-        
+
         Arguments:
             artist {dict} -- artist data
-        
+
         Keyword Arguments:
             size {int} -- Size of the image, {size}x{size} (default: {500})
             ext {str} -- Extension of the image, can be ('.jpg' or '.png') (default: {"jpg"})
-        
+
         Returns:
             bytes -- Binary data of the image
         """
-
 
         if "DATA" in artist:
             artist = artist["DATA"]
@@ -571,14 +573,13 @@ class Deezer:
 
     def get_artist_discography(self, artist_id):
         """Gets the artist's discography (tracks)
-        
+
         Arguments:
             artist_id {str} -- Artist Id
-        
+
         Returns:
             dict -- Artist discography data
         """
-
 
         data = self._api_call(api_methods.ARTIST_DISCOGRAPHY, params={
             "ART_ID": artist_id,
@@ -591,14 +592,13 @@ class Deezer:
 
     def get_artist_top_tracks(self, artist_id):
         """Gets the top tracks of the given artist
-        
+
         Arguments:
             artist_id {str} -- Artist Id
-        
+
         Returns:
             list -- List of track
         """
-
 
         data = self._api_call(api_methods.ARTIST_TOP_TRACKS, params={
             "ART_ID": artist_id,
@@ -612,14 +612,13 @@ class Deezer:
 
     def get_playlist(self, playlist_id):
         """Gets the playlist data from the given playlist_id
-        
+
         Arguments:
             playlist_id {str} -- Playlist Id
-        
+
         Returns:
             dict -- Playlist data
         """
-
 
         data = self._api_call(api_methods.PAGE_PLAYLIST, params={
             "playlist_id": playlist_id,
@@ -630,14 +629,13 @@ class Deezer:
 
     def get_playlist_tracks(self, playlist_id):
         """Gets the tracks inside the playlist
-        
+
         Arguments:
             playlist_id {str} -- Playlist Id
-        
+
         Returns:
             list -- List of tracks
         """
-
 
         data = self._api_call(api_methods.PLAYLIST_TRACKS, params={
             "PLAYLIST_ID": playlist_id,
@@ -651,14 +649,13 @@ class Deezer:
 
     def get_suggested_queries(self, query):
         """Gets suggestion based on the given {query}
-        
+
         Arguments:
             query {str} -- Query keyword
 
         Returns:
             list -- List of suggestions
         """
-
 
         data = self._api_call(api_methods.GET_SUGGESTED_QUERIES, params={
             "QUERY": query
@@ -673,48 +670,46 @@ class Deezer:
 
     def search_tracks(self, query, limit=30, index=0):
         """Searches tracks on a given query
-        
+
         Arguments:
             query {str} -- Query keyword
-        
+
         Keyword Arguments:
             limit {int} -- Number of results (default: {30})
             index {int} -- Offset (default: {0})
-        
+
         Returns:
             list -- List of tracks
         """
-
 
         return self._legacy_search(api_methods.SEARCH_TRACK, query, limit=limit, index=index)
 
     def search_albums(self, query, limit=30, index=0):
         """Searches albums on a given query
-        
+
         Arguments:
             query {str} -- Query keyword
-        
+
         Keyword Arguments:
             limit {int} -- Number of results (default: {30})
             index {int} -- Offset (default: {0})
-        
+
         Returns:
             list -- List of albums
         """
-
 
         return self._legacy_search(api_methods.SEARCH_ALBUM, query, limit=limit, index=index)
 
     def search_artists(self, query, limit=30, index=0):
         """Searches artists on a given query
-        
+
         Arguments:
             query {str} -- Query keyword
-        
+
         Keyword Arguments:
             limit {int} -- Number of tracks (default: {30})
             index {int} -- Offset (default: {0})
-        
+
         Returns:
             list -- List of artists
         """
@@ -723,18 +718,17 @@ class Deezer:
 
     def search_playlists(self, query, limit=30, index=0):
         """Searches playlists on a given query
-        
+
         Arguments:
             query {str} -- Query keyword
-        
+
         Keyword Arguments:
             limit {int} -- Number of tracks (default: {30})
             index {int} -- Offset (default: {0})
-        
+
         Returns:
             list -- List of playlists
         """
-
 
         return self._legacy_search(api_methods.SEARCH_PLAYLIST, query, limit=limit, index=index)
 
@@ -805,7 +799,7 @@ class Deezer:
 
         audio.clear_pictures()
         audio.add_picture(pic)
-        
+
         del tags["_albumart"]
 
         for key, val in tags.items():
