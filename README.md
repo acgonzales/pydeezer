@@ -23,7 +23,7 @@ user_info = deezer.user
 # user_info = deezer.login_via_arl(arl)
 ```
 
-You can get the your ```arl``` by manually logging into [Deezer](https://www.deezer.com/) using and check the ```cookies``` and look for the value of ```arl```.
+You can get the your `arl` by manually logging into [Deezer](https://www.deezer.com/) using and check the `cookies` and look for the value of `arl`.
 
 #### Searching
 
@@ -34,6 +34,8 @@ You can get the your ```arl``` by manually logging into [Deezer](https://www.dee
 track_search_results = deezer.search_tracks("IM DOPE")
 # Search albums
 album_search_results = deezer.search_albums("DAMN", limit=10)
+# Search artists
+artist_search_results = deezer.search_artists("J. Cole", limit=5)
 # Search playlists
 playlist_search_results = deezer.search_playlists("top", index=2)
 ```
@@ -58,14 +60,15 @@ tags_separated_by_comma = track["tags"]
 track["download"](download_dir, quality=track_formats.MP3_320) # this will download the file, default file name is Filename.[mp3 or flac]
 tags_separated_by_semicolon = track["get_tag"](separator="; ") # this will return a dictionary similar to track["tags"] but this will override the default separator
 
+artist_id = "53859305"
+artist = deezer.get_artist(artist_id)
+
 album_id = "39949511"
 album = deezer.get_album(album_id) # returns a dict containing data about the album
 
 playlist_id = "1370794195"
 playlist = deezer.get_playlist(playlist_id) # returns a dict containing data about the playlist
 ```
-
-
 
 ## Disclaimer
 
@@ -74,4 +77,3 @@ I will and should not be held responsible for the usage of this package.
 Don't use this package illegaly and against Deezer's [Terms Of Use](https://www.deezer.com/legal/cgu).
 
 This is licensed under [GNU GPL v3](https://choosealicense.com/licenses/gpl-3.0/#).
-
