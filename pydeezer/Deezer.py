@@ -468,13 +468,17 @@ class Deezer:
             bool -- Operation success
         """
 
+        filename = path.basename(save_path)
+        filename = util.clean_filename(filename)
+        save_path = path.join(path.dirname(save_path), filename)
+
         if not str(save_path).endswith(".lrc"):
             save_path += ".lrc"
 
         with open(save_path, "w") as f:
             if not "LYRICS_SYNC_JSON" in lyric_data:
                 return False
-                
+
             sync_data = lyric_data["LYRICS_SYNC_JSON"]
 
             for line in sync_data:
