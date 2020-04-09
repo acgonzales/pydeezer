@@ -17,7 +17,7 @@ setuptools.setup(
         "requests",
         "mutagen",
         "tqdm"
-    ]
+    ],
     license="GNU GPL v3",
     classifiers=[
         "Programming Language :: Python :: 3",
