@@ -472,6 +472,9 @@ class Deezer:
             save_path += ".lrc"
 
         with open(save_path, "w") as f:
+            if not "LYRICS_SYNC_JSON" in lyric_data:
+                return False
+                
             sync_data = lyric_data["LYRICS_SYNC_JSON"]
 
             for line in sync_data:
