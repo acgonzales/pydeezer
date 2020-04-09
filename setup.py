@@ -13,6 +13,11 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/Chr1st-oo/pydeezer",
     packages=setuptools.find_packages(),
+    install_requires=[
+        "requests",
+        "mutagen",
+        "tqdm"
+    ]
     license="GNU GPL v3",
     classifiers=[
         "Programming Language :: Python :: 3",
