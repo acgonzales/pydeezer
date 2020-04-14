@@ -2,7 +2,8 @@ import re
 import hashlib
 import unicodedata
 import string
-
+from os import path
+import pathlib
 
 def clean_query(query):
     # A pure copy-paste of regex patterns from DeezloaderRemix
@@ -17,6 +18,13 @@ def clean_query(query):
     query = re.sub(r"/–/g", "-", query)
 
     return query
+
+
+def create_folders(directory):
+    directory = path.normpath(directory)
+
+    p = pathlib.Path(directory)
+    p.mkdir(parents=True, exist_ok=True)
 
 
 def clean_filename(filename):

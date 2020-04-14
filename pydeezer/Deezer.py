@@ -364,6 +364,8 @@ class Deezer:
         download_dir = path.normpath(download_dir)
         download_path = path.join(download_dir, filename)
 
+        util.create_folders(download_dir)
+
         print("Starting download of:", title)
 
         res = self.session.get(url, cookies=self.get_cookies(), stream=True)
@@ -474,6 +476,8 @@ class Deezer:
 
         if not str(save_path).endswith(".lrc"):
             save_path += ".lrc"
+
+        util.create_folders(path.dirname(save_path))
 
         with open(save_path, "w") as f:
             if not "LYRICS_SYNC_JSON" in lyric_data:
