@@ -23,7 +23,7 @@ user_info = deezer.user
 # user_info = deezer.login_via_arl(arl)
 ```
 
-You can get the your `arl` by manually logging into [Deezer](https://www.deezer.com/) using and check the `cookies` and look for the value of `arl`.
+You can get the your `arl` by manually logging into [Deezer](https://www.deezer.com/) using your browser and check the `cookies` and look for the value of `arl`.
 
 #### Searching
 
