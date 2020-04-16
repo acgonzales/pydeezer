@@ -29,7 +29,7 @@ def create_folders(directory):
 
 def clean_filename(filename):
     # https://gist.github.com/wassname/1393c4a57cfcbf03641dbc31886123b8
-    whitelist = "-_.() %s%s" % (string.ascii_letters, string.digits) + "',\""
+    whitelist = "-_.() %s%s" % (string.ascii_letters, string.digits) + "',"
     char_limit = 255
     replace = ''
 

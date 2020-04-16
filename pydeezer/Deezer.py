@@ -210,7 +210,8 @@ class Deezer:
         title = track["SNG_TITLE"]
 
         if "VERSION" in track:
-            title += " " + track["VERSION"]
+            if track["VERSION"] != "":
+                title += " " + track["VERSION"]
 
         if "featuring" in track["SNG_CONTRIBUTORS"]:
             featuring_artists_data = track["SNG_CONTRIBUTORS"]["featuring"]
