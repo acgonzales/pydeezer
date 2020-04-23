@@ -15,14 +15,20 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=[
         "requests",
-            "cryptography",
+        "cryptography",
         "mutagen",
-        "tqdm"
+        "tqdm",
+        "click",
+        "pyinquirer"
     ],
     license="GNU GPL v3",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent"
-    ]
+    ],
+    entry_points="""
+        [console_scripts]
+        pydeezer=cli:cli
+    """
 )
