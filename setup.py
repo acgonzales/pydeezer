@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="py-deezer",
-    version="1.0.8",
+    version="1.0.9",
     author="Aaron Gonzales",
     author_email="aaroncgonzales.dev@gmail.com",
     description="A package to search and download musics on Deezer",
@@ -13,6 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/Chr1st-oo/pydeezer",
     packages=setuptools.find_packages(),
+    py_modules=["cli"],
     install_requires=[
         "requests",
         "cryptography",
