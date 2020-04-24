@@ -114,6 +114,8 @@ playlist = deezer.get_playlist(playlist_id) # returns a dict containing data abo
 
 - [ ] More CLI features, save used Arls for convenience.
 - [ ] Multithreaded downloader (1 song / 1 thread)
+- [ ] Binary file
+- [ ] GUI
 
 ## Disclaimer
 
