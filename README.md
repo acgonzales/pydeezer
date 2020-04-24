@@ -8,7 +8,47 @@ A package to search and download musics on [Deezer](https://www.deezer.com/en/).
 pip install py-deezer
 ```
 
-## Usage
+## Usage as a CLI
+
+```bash
+Usage: pydeezer [OPTIONS] COMMAND [ARGS]...
+
+  PyDeezer CLI
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  download  Download tracks
+```
+
+#### Commands
+
+```bash
+Usage: pydeezer download [OPTIONS]
+
+  Download tracks
+
+Options:
+  -a, --arl TEXT                  Used to be able to login to Deezer. Check
+                                  the docs on how to get one.
+
+  --media-type [Track|Album|Playlist|Artist]
+                                  Sets the media type and how it searches the
+                                  api.
+
+  -d, --download-dir DIRECTORY    Sets the directory on where the tracks are
+                                  to be saved.
+
+  -q, --quality [MP3_128|MP3_256|MP3_320|FLAC]
+                                  Sets the quality of the tracks. if the
+                                  provided quality is not supported, the
+                                  default quality of the track will be used.
+
+  --help                          Show this message and exit.
+```
+
+## Usage as a package
 
 #### Logging In
 
@@ -69,6 +109,11 @@ album = deezer.get_album(album_id) # returns a dict containing data about the al
 playlist_id = "1370794195"
 playlist = deezer.get_playlist(playlist_id) # returns a dict containing data about the playlist
 ```
+
+## TODO
+
+- [ ] More CLI features, save used Arls for convenience.
+- [ ] Multithreaded downloader (1 song / 1 thread)
 
 ## Disclaimer
 
