@@ -4,9 +4,9 @@ import click
 from click import echo, types
 from PyInquirer import prompt
 
-from pydeezer import Deezer, util
-from pydeezer.exceptions import LoginError
-from pydeezer.constants.track_formats import FORMAT_LIST
+from . import Deezer, util
+from .exceptions import LoginError
+from .constants.track_formats import FORMAT_LIST
 
 
 @click.group()
