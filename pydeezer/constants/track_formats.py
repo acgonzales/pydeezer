@@ -6,6 +6,8 @@ MP4_RA1 = "MP4_RA1"
 MP4_RA2 = "MP4_RA2"
 MP4_RA3 = "MP4_RA3"
 
+FORMAT_LIST = [MP3_128, MP3_256, MP3_320, FLAC]
+
 TRACK_FORMAT_MAP = {
     FLAC: {
         "code": 9,
