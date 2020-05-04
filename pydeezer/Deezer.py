@@ -223,7 +223,7 @@ class Deezer:
 
             title += f" (feat. {featuring_artists})"
 
-        total_tracks = album_data["NUMBER_TRACK"]
+        total_tracks = album_data["nb_tracks"]
         track_number = str(track["TRACK_NUMBER"]) + "/" + str(total_tracks)
 
         cover = self.get_album_poster(album_data, size=1000)
@@ -234,7 +234,7 @@ class Deezer:
             "artist": artists,
             "album": track["ALB_TITLE"],
             "albumartist": track["ART_NAME"],
-            "label": album_data["LABEL_NAME"],
+            "label": album_data["label"],
             "date": track["PHYSICAL_RELEASE_DATE"],
             "discnumber": track["DISK_NUMBER"],
             "tracknumber": track_number,
@@ -242,6 +242,9 @@ class Deezer:
             "copyright": track["COPYRIGHT"],
             "_albumart": cover,
         }
+
+        if "genre_id" in album_data:
+            tags["genre"] = album_data["genres"]["data"][0]["name"]
 
         if "author" in track["SNG_CONTRIBUTORS"]:
             _authors = track["SNG_CONTRIBUTORS"]["author"]
@@ -510,12 +513,20 @@ class Deezer:
             dict -- Album data
         """
 
-        data = self._api_call(api_methods.ALBUM_GET_DATA, params={
-            "ALB_ID": album_id,
-            "LANG": "en"
-        })
+        # data = self._api_call(api_methods.ALBUM_GET_DATA, params={
+        #     "ALB_ID": album_id,
+        #     "LANG": "en"
+        # })
 
-        return data["results"]
+        # return data["results"]
+
+        data = self._legacy_api_call("/album/{0}".format(album_id))
+
+        # TODO: maybe better logic?
+        data["cover_id"] = str(data["cover_small"]).split(
+            "cover/")[1].split("/")[0]
+
+        return data
 
     def get_album_poster(self, album, size=500, ext="jpg"):
         """Gets the album poster as a binary data
@@ -531,7 +542,8 @@ class Deezer:
             bytes -- Binary data of the image
         """
 
-        return self._get_poster(album["ALB_PICTURE"], size=size, ext=ext)
+        # return self._get_poster(album["ALB_PICTURE"], size=size, ext=ext)
+        return self._get_poster(album["cover_id"], size=size, ext=ext)
 
     def get_album_tracks(self, album_id):
         """Gets the tracks of the given {album_id}
