@@ -30,7 +30,9 @@ class Deezer:
             arl {str} -- Login using the given arl (default: {None})
         """
 
-        self.session = requests.session()
+        self.session = requests.Session()
+        self.session.headers = networking_settings.HTTP_HEADERS
+
         self.user = None
 
         if arl:
@@ -851,7 +853,7 @@ class Deezer:
             "api_token": token,
             "input": "3",
             "method": method
-        }, headers=networking_settings.HTTP_HEADERS, cookies=self.get_cookies())
+        }, cookies=self.get_cookies())
 
         data = res.json()
 
@@ -865,7 +867,7 @@ class Deezer:
 
     def _legacy_api_call(self, method, params={}):
         res = self.session.get("{0}/{1}".format(api_urls.LEGACY_API_URL, method),
-                               params=params, headers=networking_settings.HTTP_HEADERS, cookies=self.get_cookies())
+                               params=params, cookies=self.get_cookies())
 
         data = res.json()
 
