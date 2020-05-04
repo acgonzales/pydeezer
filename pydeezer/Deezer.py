@@ -484,7 +484,7 @@ class Deezer:
 
         util.create_folders(path.dirname(save_path))
 
-        with open(save_path, "w") as f:
+        with open(save_path, "w", encoding="utf-8") as f:
             if not "LYRICS_SYNC_JSON" in lyric_data:
                 return False
 
