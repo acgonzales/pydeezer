@@ -171,15 +171,29 @@ class Deezer:
         Returns:
             list -- List of keys of the valid qualities from the {track_formats.TRACK_FORMAT_MAP}
         """
+
         if "DATA" in track:
             track = track["DATA"]
 
         qualities = []
-        for key in track_formats.TRACK_FORMAT_MAP:
-            k = f"FILESIZE_{key}"
-            if k in track:
-                if str(track[k]) != "0":
-                    qualities.append(key)
+
+        # Fixes issue #4
+        for key in [track_formats.MP3_128, track_formats.MP3_320, track_formats.FLAC]:
+            download_url = self.get_track_download_url(
+                track, quality=key, fallback=False)
+
+            res = self.session.get(
+                download_url, cookies=self.get_cookies(), stream=True)
+
+            if res.status_code == 200 and int(res.headers["Content-length"]) > 0:
+                qualities.append(key)
+
+        # Gonna comment these out in case Deezer decides to fix it themselves.
+        # for key in track_formats.TRACK_FORMAT_MAP:
+        #     k = f"FILESIZE_{key}"
+        #     if k in track:
+        #         if str(track[k]) != "0":
+        #             qualities.append(key)
 
         return qualities
 
@@ -257,7 +271,7 @@ class Deezer:
 
         return tags
 
-    def get_track_download_url(self, track, quality=None, renew=False):
+    def get_track_download_url(self, track, quality=None, fallback=True, renew=False, **kwargs):
         """Gets and decrypts the download url of the given track in the given quality
 
         Arguments:
@@ -265,6 +279,7 @@ class Deezer:
 
         Keyword Arguments:
             quality {str} -- Use values from {constants.track_formats}, will get the default quality if None or an invalid is given. (default: {None})
+            fallback {bool} -- Set to True to if you want to use fallback qualities when the given quality is not available. (default: {False})
             renew {bool} -- Will renew the track object (default: {False})
 
         Raises:
@@ -282,6 +297,10 @@ class Deezer:
         if renew:
             track = self.get_track(track["SNG_ID"])["info"]
 
+        if not quality:
+            quality = track_formats.MP3_128
+            fallback = True
+
         try:
             # Just in case they passed in the whole dictionary from get_track()
             if "DATA" in track:
@@ -297,30 +316,56 @@ class Deezer:
             raise ValueError(
                 "You have passed an invalid argument. This method needs the \"DATA\" value in the dictionary returned by the get_track() method.")
 
-        quality = self._select_valid_quality(track, quality)
+        def decrypt_url(quality_code):
+            magic_char = "¤"
+            step1 = magic_char.join((md5_origin,
+                                     str(quality_code),
+                                     track_id,
+                                     media_version))
+            m = hashlib.md5()
+            m.update(bytes([ord(x) for x in step1]))
 
-        magic_char = "¤"
-        step1 = magic_char.join((md5_origin,
-                                 str(quality["code"]),
-                                 track_id,
-                                 media_version))
-        m = hashlib.md5()
-        m.update(bytes([ord(x) for x in step1]))
+            step2 = m.hexdigest() + magic_char + step1 + magic_char
+            step2 = step2.ljust(80, " ")
 
-        step2 = m.hexdigest() + magic_char + step1 + magic_char
-        step2 = step2.ljust(80, " ")
+            cipher = Cipher(algorithms.AES(bytes('jo6aey6haid2Teih', 'ascii')),
+                            modes.ECB(), default_backend())
 
-        cipher = Cipher(algorithms.AES(bytes('jo6aey6haid2Teih', 'ascii')),
-                        modes.ECB(), default_backend())
+            encryptor = cipher.encryptor()
+            step3 = encryptor.update(bytes([ord(x) for x in step2])).hex()
 
-        encryptor = cipher.encryptor()
-        step3 = encryptor.update(bytes([ord(x) for x in step2])).hex()
+            cdn = track["MD5_ORIGIN"][0]
 
-        cdn = track["MD5_ORIGIN"][0]
+            return f'https://e-cdns-proxy-{cdn}.dzcdn.net/mobile/1/{step3}'
 
-        return f'https://e-cdns-proxy-{cdn}.dzcdn.net/mobile/1/{step3}'
+        url = decrypt_url(track_formats.TRACK_FORMAT_MAP[quality]["code"])
+        res = self.session.get(url, cookies=self.get_cookies(), stream=True)
 
-    def download_track(self, track, download_dir, quality=None, filename=None, renew=False, with_metadata=True, with_lyrics=True, tag_separator=", "):
+        if not fallback:
+            res.close()
+            return (url, quality)
+        else:
+            if res.status_code == 200 and int(res.headers["Content-length"]) > 0:
+                res.close()
+                return url
+            else:
+                if "fallback_qualities" in kwargs:
+                    fallback_qualities = kwargs["fallback_qualities"]
+                else:
+                    fallback_qualities = track_formats.FALLBACK_QUALITIES
+
+                for key in fallback_qualities:
+                    url = decrypt_url(
+                        track_formats.TRACK_FORMAT_MAP[key]["code"])
+
+                    res = self.session.get(
+                        url, cookies=self.get_cookies(), stream=True)
+
+                    if res.status_code == 200 and int(res.headers["Content-length"]) > 0:
+                        res.close()
+                        return (url, key)
+
+    def download_track(self, track, download_dir, quality=None, fallback=True, filename=None, renew=False, with_metadata=True, with_lyrics=True, tag_separator=", ", **kwargs):
         """Downloads the given track
 
         Arguments:
@@ -355,10 +400,13 @@ class Deezer:
 
         tags = self.get_track_tags(track, separator=tag_separator)
 
-        url = self.get_track_download_url(track, quality, renew=renew)
+        url, quality_key = self.get_track_download_url(
+            track, quality, fallback=fallback, renew=renew, **kwargs)
         blowfish_key = util.get_blowfish_key(track["SNG_ID"])
 
-        quality = self._select_valid_quality(track, quality)
+        # quality = self._select_valid_quality(track, quality)
+
+        quality = track_formats.TRACK_FORMAT_MAP[quality_key]
 
         title = tags["title"]
         ext = quality["ext"]
