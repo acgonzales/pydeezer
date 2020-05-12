@@ -347,7 +347,7 @@ class Deezer:
         else:
             if res.status_code == 200 and int(res.headers["Content-length"]) > 0:
                 res.close()
-                return url
+                return (url, quality)
             else:
                 if "fallback_qualities" in kwargs:
                     fallback_qualities = kwargs["fallback_qualities"]
