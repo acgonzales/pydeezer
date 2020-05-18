@@ -849,16 +849,18 @@ class Deezer:
         del tags["_albumart"]
 
         for key, val in tags.items():
-            audio[key] = str(val)
+            if val:
+                audio[key] = str(val)
         audio.save()
 
-        cover_handle = ID3(path)
-        cover_handle["APIC"] = APIC(
-            type=3,
-            mime=cover["mime_type"],
-            data=cover["image"]
-        )
-        cover_handle.save(path)
+        if cover:
+            cover_handle = ID3(path)
+            cover_handle["APIC"] = APIC(
+                type=3,
+                mime=cover["mime_type"],
+                data=cover["image"]
+            )
+            cover_handle.save(path)
 
         return True
 
@@ -872,16 +874,19 @@ class Deezer:
         audio = File(path)
         audio.delete()
 
-        pic = mutagen.flac.Picture()
-        pic.data = tags["_albumart"]["image"]
-
-        audio.clear_pictures()
-        audio.add_picture(pic)
-
+        cover = tags["_albumart"]
         del tags["_albumart"]
 
+        if cover:
+            pic = mutagen.flac.Picture()
+            pic.data = cover["image"]
+
+            audio.clear_pictures()
+            audio.add_picture(pic)
+
         for key, val in tags.items():
-            audio[key] = str(val)
+            if val:
+                audio[key] = str(val)
         audio.save()
 
         return True
