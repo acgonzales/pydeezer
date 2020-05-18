@@ -50,21 +50,27 @@ def download(arl, media_type, download_dir, quality):
 
     def search_choices(answers):
         query = answers["query"]
-        media_type = answers["media_type"]
 
-        if media_type == "Album":
+        if "media_type" in answers:
+            _media_type = answers["media_type"]
+        else:
+            _media_type = media_type
+
+        _media_type = _media_type.upper()
+
+        if _media_type == "ALBUM":
             return [{
                 "name": album["title"] + " - " + album["artist"]["name"],
                 "value": album["id"],
                 "short": album["title"]
             } for album in deezer.search_albums(query)]
-        elif media_type == "Playlist":
+        elif _media_type == "PLAYLIST":
             return [{
                 "name": playlist["title"] + " - " + playlist["user"]["name"],
                 "value": playlist["id"],
                 "short": playlist["title"]
             } for playlist in deezer.search_playlists(query)]
-        elif media_type == "Artist":
+        elif _media_type == "ARTIST":
             return [{
                 "name": artist["name"],
                 "value": artist["id"],
@@ -72,9 +78,12 @@ def download(arl, media_type, download_dir, quality):
             } for artist in deezer.search_artists(query)]
 
     def track_choices(answers):
-        media_type = answers["media_type"]
+        if "media_type" in answers:
+            _media_type = answers["media_type"]
+        else:
+            _media_type = media_type
 
-        if media_type == "Album":
+        if _media_type == "ALBUM":
             album_id = answers["album"]
 
             return [{
@@ -82,7 +91,7 @@ def download(arl, media_type, download_dir, quality):
                 "value": track["SNG_ID"],
                 "short": track["SNG_TITLE"]
             } for track in deezer.get_album_tracks(album_id)]
-        elif media_type == "Playlist":
+        elif _media_type == "PLAYLIST":
             playlist_id = answers["playlist"]
 
             return [{
@@ -90,7 +99,7 @@ def download(arl, media_type, download_dir, quality):
                 "value": track["SNG_ID"],
                 "short": track["SNG_TITLE"]
             } for track in deezer.get_playlist_tracks(playlist_id)]
-        elif media_type == "Artist":
+        elif _media_type == "ARTIST":
             artist_id = answers["artist"]
 
             return [{
@@ -126,21 +135,21 @@ def download(arl, media_type, download_dir, quality):
             "type": "list",
             "name": "album",
             "message": "Select an album.",
-            "when": lambda answers: answers["media_type"] == "Album" or media_type == "Album",
+            "when": lambda answers: ("media_type" in answers and answers["media_type"] == "Album") or media_type == "Album",
             "choices": search_choices
         },
         {
             "type": "list",
             "name": "playlist",
             "message": "Select a playlist.",
-            "when": lambda answers: answers["media_type"] == "Playlist" or media_type == "Playlist",
+            "when": lambda answers: ("media_type" in answers and answers["media_type"] == "Playlist") or media_type == "Playlist",
             "choices": search_choices
         },
         {
             "type": "list",
             "name": "artist",
             "message": "Select an artist.",
-            "when": lambda answers: answers["media_type"] == "Artist" or media_type == "Artist",
+            "when": lambda answers: ("media_type" in answers and answers["media_type"] == "Artist") or media_type == "Artist",
             "choices": search_choices
         },
         {
