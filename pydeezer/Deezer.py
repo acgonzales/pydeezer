@@ -229,7 +229,16 @@ class Deezer:
             if track["VERSION"] != "":
                 title += " " + track["VERSION"]
 
-        if "featuring" in track["SNG_CONTRIBUTORS"]:
+        def should_include_featuring():
+            # Checks if the track title already have the featuring artists in its title
+            feat_keywords = ["feat.", "featuring", "ft."]
+
+            for keyword in feat_keywords:
+                if keyword in title.lower():
+                    return False
+            return True
+
+        if should_include_featuring() and "featuring" in track["SNG_CONTRIBUTORS"]:
             featuring_artists_data = track["SNG_CONTRIBUTORS"]["featuring"]
             featuring_artists = featuring_artists_data[0]
             for i in range(1, len(featuring_artists_data)):
