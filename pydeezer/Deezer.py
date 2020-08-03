@@ -653,7 +653,7 @@ class Deezer:
             bytes -- Binary data of the image
         """
 
-        if "DATA" in artist:
+        if not "ART_PICTURE" in artist and "DATA" in artist:
             artist = artist["DATA"]
 
         return self._get_poster(artist["ART_PICTURE"], size=size, ext=ext)
