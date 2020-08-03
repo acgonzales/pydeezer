@@ -83,6 +83,8 @@ def download(arl, media_type, download_dir, quality):
         else:
             _media_type = media_type
 
+        _media_type = _media_type.upper()
+
         if _media_type == "ALBUM":
             album_id = answers["album"]
 
