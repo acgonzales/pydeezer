@@ -477,7 +477,7 @@ class Deezer:
                 self._write_mp3_tags(download_path, track, tags=tags)
 
         if with_lyrics:
-            lyrics_path = path.join(download_dir, title)
+            lyrics_path = path.join(download_dir, filename[:-len(ext)])
             self.save_lyrics(lyric_data, lyrics_path)
 
         print("Track downloaded to:", download_path)
