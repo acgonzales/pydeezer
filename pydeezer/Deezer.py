@@ -266,7 +266,7 @@ class Deezer:
             "_albumart": cover,
         }
 
-        if "genre_id" in album_data:
+        if len(album_data["genres"]["data"])>0:
             tags["genre"] = album_data["genres"]["data"][0]["name"]
 
         if "author" in track["SNG_CONTRIBUTORS"]:
