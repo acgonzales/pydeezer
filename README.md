@@ -4,8 +4,18 @@ A package to search and download musics on [Deezer](https://www.deezer.com/en/).
 
 ## Installation
 
+### Install from release
+
 ```bash
 pip install py-deezer
+```
+
+### Install from repository
+
+```bash
+git clone https://github.com/Chr1st-oo/pydeezer.git
+cd pydeezer
+pip install .
 ```
 
 ## Usage as a CLI
