@@ -251,10 +251,10 @@ class Deezer:
 
         cover = self.get_album_poster(album_data, size=1000)
 
-        # TODO: I'd like to put some genre here, let me figure it out later
         tags = {
             "title": title,
             "artist": artists,
+            "genre": None,
             "album": track["ALB_TITLE"],
             "albumartist": track["ART_NAME"],
             "label": album_data["label"],
@@ -266,7 +266,7 @@ class Deezer:
             "_albumart": cover,
         }
 
-        if len(album_data["genres"]["data"])>0:
+        if len(album_data["genres"]["data"])> 0:
             tags["genre"] = album_data["genres"]["data"][0]["name"]
 
         if "author" in track["SNG_CONTRIBUTORS"]:
