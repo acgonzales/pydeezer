@@ -120,6 +120,70 @@ playlist_id = "1370794195"
 playlist = deezer.get_playlist(playlist_id) # returns a dict containing data about the playlist
 ```
 
+### Custom ProgressHandler
+
+This example uses the amazing [rich](https://github.com/willmcgugan/rich) package.
+
+#### Code
+
+```python
+from pydeezer import Deezer
+from pydeezer.ProgressHandler import BaseProgressHandler
+import rich
+from rich.progress import (
+    BarColumn,
+    DownloadColumn,
+    TextColumn,
+    TransferSpeedColumn,
+    TimeRemainingColumn,
+    Progress
+)
+
+# Extend BaseProgressHandler and override its update and close methods accordingly
+
+class RichProgressHandler(BaseProgressHandler):
+    def __init__(self, *args):
+        super().__init__(*args)
+
+        self.progress = Progress(
+            TextColumn("[bold blue]{task.fields[title]}", justify="right"),
+            BarColumn(bar_width=None),
+            "[progress.percentage]{task.percentage:>3.1f}%",
+            "•",
+            DownloadColumn(),
+            "•",
+            TransferSpeedColumn(),
+            "•",
+            TimeRemainingColumn(),
+        )
+        self.download_task = self.progress.add_task(
+            self.track_title, title=self.track_title, total=self.total_size)
+        self.progress.start()
+
+    def update(self):
+        self.progress.update(self.download_task,
+                             advance=self.current_chunk_size)
+
+    def close(self):
+        self.progress.stop()
+
+# When starting a download, pass your ProgressHandler in progress_handler keyword argument.
+
+print("DefaultProgressHandler")
+track["download"](download_dir, quality=track_formats.MP3_320)
+
+print()
+
+print("RichProgressHandler")
+track["download"](download_dir, quality=track_formats.MP3_320,
+                  progress_handler=RichProgressHandler)
+
+```
+
+#### Output
+
+![progresshandlergif](https://media.giphy.com/media/hxxU4CWki3jCICMigm/giphy.gif)
+
 ## TODO
 
 - [ ] More CLI features, save used Arls for convenience.

@@ -1,5 +1,4 @@
 from functools import partial
-import json
 import hashlib
 from os import path
 
@@ -12,6 +11,8 @@ from mutagen.id3 import ID3, APIC
 from mutagen.easyid3 import EasyID3
 from mutagen.mp3 import MP3
 from tqdm import tqdm
+
+from .ProgressHandler import BaseProgressHandler, DefaultProgressHandler
 
 from .constants import *
 
@@ -172,8 +173,7 @@ class Deezer:
             list -- List of keys of the valid qualities from the {track_formats.TRACK_FORMAT_MAP}
         """
 
-        if "DATA" in track:
-            track = track["DATA"]
+        track = track["DATA"] if "DATA" in track else track
 
         qualities = []
 
@@ -210,8 +210,7 @@ class Deezer:
             dict -- Tags
         """
 
-        if "DATA" in track:
-            track = track["DATA"]
+        track = track["DATA"] if "DATA" in track else track
 
         album_data = self.get_album(track["ALB_ID"])
 
@@ -225,9 +224,8 @@ class Deezer:
 
         title = track["SNG_TITLE"]
 
-        if "VERSION" in track:
-            if track["VERSION"] != "":
-                title += " " + track["VERSION"]
+        if "VERSION" in track and track["VERSION"] != "":
+            title += " " + track["VERSION"]
 
         def should_include_featuring():
             # Checks if the track title already have the featuring artists in its title
@@ -266,7 +264,7 @@ class Deezer:
             "_albumart": cover,
         }
 
-        if len(album_data["genres"]["data"])> 0:
+        if len(album_data["genres"]["data"]) > 0:
             tags["genre"] = album_data["genres"]["data"][0]["name"]
 
         if "author" in track["SNG_CONTRIBUTORS"]:
@@ -312,8 +310,8 @@ class Deezer:
 
         try:
             # Just in case they passed in the whole dictionary from get_track()
-            if "DATA" in track:
-                track = track["DATA"]
+            track = track["DATA"] if "DATA" in track else track
+
             if not "MD5_ORIGIN" in track:
                 raise DownloadLinkDecryptionError(
                     "MD5 is needed to decrypt the download link.")
@@ -350,31 +348,29 @@ class Deezer:
         url = decrypt_url(track_formats.TRACK_FORMAT_MAP[quality]["code"])
         res = self.session.get(url, cookies=self.get_cookies(), stream=True)
 
-        if not fallback:
+        if not fallback or (res.status_code == 200 and int(res.headers["Content-length"]) > 0):
             res.close()
             return (url, quality)
         else:
-            if res.status_code == 200 and int(res.headers["Content-length"]) > 0:
-                res.close()
-                return (url, quality)
+            if "fallback_qualities" in kwargs:
+                fallback_qualities = kwargs["fallback_qualities"]
             else:
-                if "fallback_qualities" in kwargs:
-                    fallback_qualities = kwargs["fallback_qualities"]
-                else:
-                    fallback_qualities = track_formats.FALLBACK_QUALITIES
+                fallback_qualities = track_formats.FALLBACK_QUALITIES
 
-                for key in fallback_qualities:
-                    url = decrypt_url(
-                        track_formats.TRACK_FORMAT_MAP[key]["code"])
+            for key in fallback_qualities:
+                url = decrypt_url(
+                    track_formats.TRACK_FORMAT_MAP[key]["code"])
 
-                    res = self.session.get(
-                        url, cookies=self.get_cookies(), stream=True)
+                res = self.session.get(
+                    url, cookies=self.get_cookies(), stream=True)
 
-                    if res.status_code == 200 and int(res.headers["Content-length"]) > 0:
-                        res.close()
-                        return (url, key)
+                if res.status_code == 200 and int(res.headers["Content-length"]) > 0:
+                    res.close()
+                    return (url, key)
 
-    def download_track(self, track, download_dir, quality=None, fallback=True, filename=None, renew=False, with_metadata=True, with_lyrics=True, tag_separator=", ", **kwargs):
+    def download_track(self, track, download_dir, quality=None, fallback=True, filename=None, renew=False,
+                       with_metadata=True, with_lyrics=True, tag_separator=", ",
+                       progress_handler: BaseProgressHandler = DefaultProgressHandler, **kwargs):
         """Downloads the given track
 
         Arguments:
@@ -404,8 +400,7 @@ class Deezer:
                 except APIRequestError:
                     with_lyrics = False
 
-        if "DATA" in track:
-            track = track["DATA"]
+        track = track["DATA"] if "DATA" in track else track
 
         tags = self.get_track_tags(track, separator=tag_separator)
 
@@ -438,21 +433,27 @@ class Deezer:
         res = self.session.get(url, cookies=self.get_cookies(), stream=True)
         chunk_size = 2048
         total_filesize = int(res.headers["Content-Length"])
-        current_filesize = 0
         i = 0
 
-        pbar = tqdm(res.iter_content(chunk_size), total=total_filesize,
-                    unit="B", unit_scale=True, unit_divisor=1024, leave=False, desc=title)
-        with open(download_path, "wb") as f:
-            f.seek(current_filesize)
+        data_iter = res.iter_content(chunk_size)
+        
+        if not progress_handler:
+            progress_handler = DefaultProgressHandler
 
-            for chunk in pbar:
-                chunk_len = len(chunk)
+        _progress_handler = progress_handler(data_iter,
+                                             title, quality_key, total_filesize, chunk_size)
+
+        with open(download_path, "wb") as f:
+            f.seek(_progress_handler.size_downloaded)
+
+            for chunk in data_iter:
+                _progress_handler.current_chunk_size = len(chunk)
+
                 if i % 3 > 0:
                     f.write(chunk)
                 elif len(chunk) < chunk_size:
                     f.write(chunk)
-                    pbar.update(chunk_len)
+                    _progress_handler.update()
                     break
                 else:
                     cipher = Cipher(algorithms.Blowfish(blowfish_key),
@@ -464,12 +465,16 @@ class Deezer:
                     dec_data = decryptor.update(
                         chunk) + decryptor.finalize()
                     f.write(dec_data)
-                    chunk_len = len(dec_data)
-                i += 1
-                current_filesize += chunk_size
-                pbar.update(chunk_len)
 
-        pbar.close()
+                    _progress_handler.current_chunk_size = len(dec_data)
+
+                i += 1
+
+                _progress_handler.size_downloaded += chunk_size
+                _progress_handler.update()
+
+        _progress_handler.close()
+
         if with_metadata:
             if ext.lower() == ".flac":
                 self._write_flac_tags(download_path, track, tags=tags)
@@ -844,8 +849,7 @@ class Deezer:
         }
 
     def _write_mp3_tags(self, path, track, tags=None):
-        if "DATA" in track:
-            track = track["DATA"]
+        track = track["DATA"] if "DATA" in track else track
 
         if not tags:
             tags = self.get_track_tags(track)
@@ -874,8 +878,7 @@ class Deezer:
         return True
 
     def _write_flac_tags(self, path, track, tags=None):
-        if "DATA" in track:
-            track = track["DATA"]
+        track = track["DATA"] if "DATA" in track else track
 
         if not tags:
             tags = self.get_track_tags(track)
