@@ -17,7 +17,7 @@ setuptools.setup(
         "requests",
         "cryptography",
         "mutagen",
-        "tqdm",
+        "rich",
         "click",
         "pyinquirer",
         "colorama"

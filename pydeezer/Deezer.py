@@ -10,7 +10,6 @@ from mutagen import File
 from mutagen.id3 import ID3, APIC
 from mutagen.easyid3 import EasyID3
 from mutagen.mp3 import MP3
-from tqdm import tqdm
 
 from .ProgressHandler import BaseProgressHandler, DefaultProgressHandler
 
@@ -370,7 +369,7 @@ class Deezer:
 
     def download_track(self, track, download_dir, quality=None, fallback=True, filename=None, renew=False,
                        with_metadata=True, with_lyrics=True, tag_separator=", ",
-                       progress_handler: BaseProgressHandler = DefaultProgressHandler(), **kwargs):
+                       progress_handler: BaseProgressHandler = None, **kwargs):
         """Downloads the given track
 
         Arguments:

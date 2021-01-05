@@ -1,4 +1,11 @@
-from tqdm import tqdm
+from rich.progress import (
+    BarColumn,
+    DownloadColumn,
+    TextColumn,
+    TransferSpeedColumn,
+    TimeRemainingColumn,
+    Progress
+)
 
 
 class BaseProgressHandler:
@@ -23,16 +30,28 @@ class BaseProgressHandler:
 
 class DefaultProgressHandler(BaseProgressHandler):
     def __init__(self, position=0):
-        self.position = position
+        self.progress = Progress(
+            TextColumn("[bold blue]{task.fields[title]}", justify="right"),
+            BarColumn(bar_width=None),
+            "[progress.percentage]{task.percentage:>3.1f}%",
+            "•",
+            DownloadColumn(),
+            "•",
+            TransferSpeedColumn(),
+            "•",
+            TimeRemainingColumn(),
+        )
 
     def initialize(self, *args):
         super().initialize(*args)
 
-        self.pbar = tqdm(self.iterable, total=self.total_size, position=self.position,
-                         unit="B", unit_scale=True, unit_divisor=1024, leave=False, desc=self.track_title)
+        self.download_task = self.progress.add_task(
+            self.track_title, title=self.track_title, total=self.total_size)
+        self.progress.start()
 
     def update(self):
-        self.pbar.update(self.current_chunk_size)
+        self.progress.update(self.download_task,
+                             advance=self.current_chunk_size)
 
     def close(self):
-        self.pbar.close()
+        self.progress.stop()
