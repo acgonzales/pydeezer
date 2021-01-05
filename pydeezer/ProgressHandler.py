@@ -56,5 +56,5 @@ class DefaultProgressHandler(BaseProgressHandler):
         self.progress.update(self.download_task,
                              advance=self.current_chunk_size)
 
-    def close(self):
+    def close(self, *args, **kwargs):
         self.progress.stop()
