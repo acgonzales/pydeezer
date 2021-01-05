@@ -139,12 +139,10 @@ from rich.progress import (
     Progress
 )
 
-# Extend BaseProgressHandler and override its update and close methods accordingly
+# Extend BaseProgressHandler and override its initialize, update and close methods accordingly
 
 class RichProgressHandler(BaseProgressHandler):
-    def __init__(self, *args):
-        super().__init__(*args)
-
+    def __init__(self):
         self.progress = Progress(
             TextColumn("[bold blue]{task.fields[title]}", justify="right"),
             BarColumn(bar_width=None),
@@ -156,6 +154,10 @@ class RichProgressHandler(BaseProgressHandler):
             "•",
             TimeRemainingColumn(),
         )
+
+    def initialize(self, *args):
+        super().initialize(*args)
+
         self.download_task = self.progress.add_task(
             self.track_title, title=self.track_title, total=self.total_size)
         self.progress.start()
@@ -167,16 +169,18 @@ class RichProgressHandler(BaseProgressHandler):
     def close(self):
         self.progress.stop()
 
-# When starting a download, pass your ProgressHandler in progress_handler keyword argument.
+# When starting a download, pass your ProgressHandler instance in progress_handler keyword argument.
 
 print("DefaultProgressHandler")
 track["download"](download_dir, quality=track_formats.MP3_320)
 
 print()
 
+rich_progress_handler = RichProgressHandler()
+
 print("RichProgressHandler")
 track["download"](download_dir, quality=track_formats.MP3_320,
-                  progress_handler=RichProgressHandler)
+                  progress_handler=rich_progress_handler)
 
 ```
 

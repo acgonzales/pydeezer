@@ -370,7 +370,7 @@ class Deezer:
 
     def download_track(self, track, download_dir, quality=None, fallback=True, filename=None, renew=False,
                        with_metadata=True, with_lyrics=True, tag_separator=", ",
-                       progress_handler: BaseProgressHandler = DefaultProgressHandler, **kwargs):
+                       progress_handler: BaseProgressHandler = DefaultProgressHandler(), **kwargs):
         """Downloads the given track
 
         Arguments:
@@ -436,24 +436,24 @@ class Deezer:
         i = 0
 
         data_iter = res.iter_content(chunk_size)
-        
-        if not progress_handler:
-            progress_handler = DefaultProgressHandler
 
-        _progress_handler = progress_handler(data_iter,
-                                             title, quality_key, total_filesize, chunk_size)
+        if not progress_handler:
+            progress_handler = DefaultProgressHandler()
+
+        progress_handler.initialize(data_iter,
+                                    title, quality_key, total_filesize, chunk_size)
 
         with open(download_path, "wb") as f:
-            f.seek(_progress_handler.size_downloaded)
+            f.seek(progress_handler.size_downloaded)
 
             for chunk in data_iter:
-                _progress_handler.current_chunk_size = len(chunk)
+                progress_handler.current_chunk_size = len(chunk)
 
                 if i % 3 > 0:
                     f.write(chunk)
                 elif len(chunk) < chunk_size:
                     f.write(chunk)
-                    _progress_handler.update()
+                    progress_handler.update()
                     break
                 else:
                     cipher = Cipher(algorithms.Blowfish(blowfish_key),
@@ -466,14 +466,14 @@ class Deezer:
                         chunk) + decryptor.finalize()
                     f.write(dec_data)
 
-                    _progress_handler.current_chunk_size = len(dec_data)
+                    progress_handler.current_chunk_size = len(dec_data)
 
                 i += 1
 
-                _progress_handler.size_downloaded += chunk_size
-                _progress_handler.update()
+                progress_handler.size_downloaded += chunk_size
+                progress_handler.update()
 
-        _progress_handler.close()
+        progress_handler.close()
 
         if with_metadata:
             if ext.lower() == ".flac":

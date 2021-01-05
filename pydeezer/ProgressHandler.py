@@ -2,7 +2,10 @@ from tqdm import tqdm
 
 
 class BaseProgressHandler:
-    def __init__(self, iterable, track_title, track_quality, total_size, chunk_size):
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def initialize(self, iterable, track_title, track_quality, total_size, chunk_size):
         self.iterable = iterable
         self.track_title = track_title
         self.track_quality = track_quality
@@ -19,10 +22,13 @@ class BaseProgressHandler:
 
 
 class DefaultProgressHandler(BaseProgressHandler):
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, position=0):
+        self.position = position
 
-        self.pbar = tqdm(self.iterable, total=self.total_size,
+    def initialize(self, *args):
+        super().initialize(*args)
+
+        self.pbar = tqdm(self.iterable, total=self.total_size, position=self.position,
                          unit="B", unit_scale=True, unit_divisor=1024, leave=False, desc=self.track_title)
 
     def update(self):
