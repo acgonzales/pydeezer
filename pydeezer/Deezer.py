@@ -368,7 +368,7 @@ class Deezer:
                     return (url, key)
 
     def download_track(self, track, download_dir, quality=None, fallback=True, filename=None, renew=False,
-                       with_metadata=True, with_lyrics=True, tag_separator=", ",
+                       with_metadata=True, with_lyrics=True, tag_separator=", ", show_messages=True,
                        progress_handler: BaseProgressHandler = None, **kwargs):
         """Downloads the given track
 
@@ -427,7 +427,8 @@ class Deezer:
 
         util.create_folders(download_dir)
 
-        print("Starting download of:", title)
+        if show_messages:
+            print("Starting download of:", title)
 
         res = self.session.get(url, cookies=self.get_cookies(), stream=True)
         chunk_size = 2048
@@ -439,20 +440,21 @@ class Deezer:
         if not progress_handler:
             progress_handler = DefaultProgressHandler()
 
-        progress_handler.initialize(data_iter,
-                                    title, quality_key, total_filesize, chunk_size)
+        progress_handler.initialize(data_iter, title, quality_key, total_filesize,
+                                    chunk_size, track_id=track["SNG_ID"])
 
         with open(download_path, "wb") as f:
-            f.seek(progress_handler.size_downloaded)
+            f.seek(0)
 
             for chunk in data_iter:
-                progress_handler.current_chunk_size = len(chunk)
+                current_chunk_size = len(chunk)
 
                 if i % 3 > 0:
                     f.write(chunk)
                 elif len(chunk) < chunk_size:
                     f.write(chunk)
-                    progress_handler.update()
+                    progress_handler.update(
+                        track_id=track["SNG_ID"], current_chunk_size=current_chunk_size)
                     break
                 else:
                     cipher = Cipher(algorithms.Blowfish(blowfish_key),
@@ -465,14 +467,12 @@ class Deezer:
                         chunk) + decryptor.finalize()
                     f.write(dec_data)
 
-                    progress_handler.current_chunk_size = len(dec_data)
+                    current_chunk_size = len(dec_data)
 
                 i += 1
 
-                progress_handler.size_downloaded += chunk_size
-                progress_handler.update()
-
-        progress_handler.close()
+                progress_handler.update(
+                    track_id=track["SNG_ID"], current_chunk_size=current_chunk_size)
 
         if with_metadata:
             if ext.lower() == ".flac":
@@ -484,7 +484,10 @@ class Deezer:
             lyrics_path = path.join(download_dir, filename[:-len(ext)])
             self.save_lyrics(lyric_data, lyrics_path)
 
-        print("Track downloaded to:", download_path)
+        if show_messages:
+            print("Track downloaded to:", download_path)
+
+        progress_handler.close(track_id=track["SNG_ID"], total_filesize=total_filesize)
 
     def get_tracks(self, track_ids):
         """Gets the list of the tracks that corresponds with the given {track_ids}
