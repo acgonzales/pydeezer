@@ -129,64 +129,46 @@ This example uses the amazing [rich](https://github.com/willmcgugan/rich) packag
 ```python
 from pydeezer import Deezer
 from pydeezer.ProgressHandler import BaseProgressHandler
-import rich
-from rich.progress import (
-    BarColumn,
-    DownloadColumn,
-    TextColumn,
-    TransferSpeedColumn,
-    TimeRemainingColumn,
-    Progress
-)
+from tqdm import tqdm
 
 # Extend BaseProgressHandler and override its initialize, update and close methods accordingly
 
-class RichProgressHandler(BaseProgressHandler):
+class MyProgressHandler(BaseProgressHandler):
     def __init__(self):
-        self.progress = Progress(
-            TextColumn("[bold blue]{task.fields[title]}", justify="right"),
-            BarColumn(bar_width=None),
-            "[progress.percentage]{task.percentage:>3.1f}%",
-            "•",
-            DownloadColumn(),
-            "•",
-            TransferSpeedColumn(),
-            "•",
-            TimeRemainingColumn(),
-        )
+        pass
 
     def initialize(self, *args):
         super().initialize(*args)
 
-        self.download_task = self.progress.add_task(
-            self.track_title, title=self.track_title, total=self.total_size)
-        self.progress.start()
+        self.pbar = tqdm(self.iterable, total=self.total_size,
+                         unit="B", unit_scale=True, unit_divisor=1024, 
+                         leave=False, desc=self.track_title)
 
     def update(self):
-        self.progress.update(self.download_task,
-                             advance=self.current_chunk_size)
+        self.pbar.update(self.current_chunk_size)
 
     def close(self):
-        self.progress.stop()
+        self.pbar.close()
+
 
 # When starting a download, pass your ProgressHandler instance in progress_handler keyword argument.
 
 print("DefaultProgressHandler")
-track["download"](download_dir, quality=track_formats.MP3_320)
+track["download"](download_dir, quality=track_formats.FLAC)
 
 print()
 
-rich_progress_handler = RichProgressHandler()
+my_progress_handler = MyProgressHandler()
 
-print("RichProgressHandler")
-track["download"](download_dir, quality=track_formats.MP3_320,
-                  progress_handler=rich_progress_handler)
+print("CustomProgressHandler")
+track["download"](download_dir, quality=track_formats.FLAC,
+                  progress_handler=my_progress_handler)
 
 ```
 
 #### Output
 
-![progresshandlergif](https://media.giphy.com/media/hxxU4CWki3jCICMigm/giphy.gif)
+![progresshandlergif](https://media.giphy.com/media/xa8YtgCbBvK0jSfefa/giphy.gif)
 
 ## TODO
 
