@@ -135,7 +135,7 @@ downloader.start()
 
 ### Custom ProgressHandler
 
-This example uses the amazing [rich](https://github.com/willmcgugan/rich) package.
+This example uses the amazing [tqdm](https://github.com/tqdm/tqdm) package.
 
 #### Code
 
