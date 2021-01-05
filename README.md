@@ -96,9 +96,11 @@ playlist_search_results = deezer.search_playlists("top", index=2)
 # Some login code here
 
 # Some download stuffs
+
+from pydeezer import Downloader
 from pydeezer.constants import track_formats
 
-download_dir = "~/Downloads/"
+download_dir = "C:\\Users\\User\\Music"
 
 track_id = "547653622"
 track = deezer.get_track(track_id)
@@ -118,6 +120,17 @@ album = deezer.get_album(album_id) # returns a dict containing data about the al
 
 playlist_id = "1370794195"
 playlist = deezer.get_playlist(playlist_id) # returns a dict containing data about the playlist
+
+# Multithreaded Downloader
+
+list_of_id = ["572537082",
+              "921278352",
+              "927432162",
+              "547653622"]
+
+downloader = Downloader(deezer, list_of_ids, download_dir,
+                        quality=track_formats.MP3_320, concurrent_downloads=2)
+downloader.start()
 ```
 
 ### Custom ProgressHandler
@@ -173,7 +186,7 @@ track["download"](download_dir, quality=track_formats.FLAC,
 ## TODO
 
 - [ ] More CLI features, save used Arls for convenience.
-- [ ] Multithreaded downloader (1 song / 1 thread)
+- [x] Multithreaded downloader (1 song / 1 thread)
 - [ ] Binary file
 - [ ] GUI
 
