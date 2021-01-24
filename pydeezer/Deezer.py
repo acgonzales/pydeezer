@@ -2,6 +2,7 @@ from functools import partial
 import hashlib
 from os import path
 
+from deezer import Deezer as DeezerPy
 import requests
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -11,9 +12,10 @@ from mutagen.id3 import ID3, APIC
 from mutagen.easyid3 import EasyID3
 from mutagen.mp3 import MP3
 
+
 from .ProgressHandler import BaseProgressHandler, DefaultProgressHandler
 
-from .constants import *
+from .constants import track_formats
 
 from .exceptions import LoginError
 from .exceptions import APIRequestError
@@ -22,24 +24,20 @@ from .exceptions import DownloadLinkDecryptionError
 from . import util
 
 
-class Deezer:
+class Deezer(DeezerPy):
     def __init__(self, arl=None):
         """Instantiates a Deezer object
 
         Keyword Arguments:
             arl {str} -- Login using the given arl (default: {None})
         """
-
-        self.session = requests.Session()
-        self.session.headers = networking_settings.HTTP_HEADERS
-
-        self.user = None
+        super().__init__()
 
         if arl:
             self.arl = arl
             self.login_via_arl(arl)
 
-    def login_via_arl(self, arl):
+    def login_via_arl(self, arl, child=0):
         """Logs in to Deezer using the given
 
         Arguments:
@@ -48,91 +46,12 @@ class Deezer:
         Returns:
             dict -- User data given by the Deezer API
         """
+        super().login_via_arl(arl, child=child)
+        return self.current_user
 
-        self.set_cookie("arl", arl)
-        self.get_user_data()
-
-        return self.user
-
-    def get_user_data(self):
-        """Gets the data of the user, this will only work arl is the cookie. Make sure you have run login_via_arl() before using this.
-
-        Raises:
-            LoginError: Will raise if the arl given is not identified by Deezer
-        """
-
-        data = self._api_call(api_methods.GET_USER_DATA)["results"]
-
-        self.token = data["checkForm"]
-
-        if not data["USER"]["USER_ID"]:
-            raise LoginError("Arl is invalid.")
-
-        raw_user = data["USER"]
-
-        if raw_user["USER_PICTURE"]:
-            self.user = {
-                "id": raw_user["USER_ID"],
-                "name": raw_user["BLOG_NAME"],
-                "arl": self.get_cookies()["arl"],
-                "image": "https://e-cdns-images.dzcdn.net/images/user/{0}/250x250-000000-80-0-0.jpg".format(raw_user["USER_PICTURE"])
-            }
-        else:
-            self.user = {
-                "id": raw_user["USER_ID"],
-                "name": raw_user["BLOG_NAME"],
-                "arl": self.get_cookies()["arl"],
-                "image": "https://e-cdns-images.dzcdn.net/images/user/250x250-000000-80-0-0.jpg"
-            }
-
-    def set_cookie(self, key, value, domain=api_urls.DEEZER_URL, path="/"):
-        """Sets the cookie in the given domain
-
-        Arguments:
-            key {str} -- The key of the cookie
-            value {str} -- The value of the cookie
-
-        Keyword Arguments:
-            domain {str} -- The domain of the cookie (default: {api_urls.DEEZER_URL})
-            path {str} -- The path of the cookie (default: {"/"})
-        """
-
-        cookie = requests.cookies.create_cookie(
-            name=key, value=value, domain=domain)
-        self.session.cookies.set_cookie(cookie)
-
-    def get_cookies(self):
-        """Get cookies in the domain of {api_urls.DEEZER_URL}
-
-        Returns:
-            dict -- Cookies
-        """
-
-        if api_urls.DEEZER_URL in self.session.cookies.list_domains():
-            return self.session.cookies.get_dict(api_urls.DEEZER_URL)
-        return None
-
-    def get_sid(self):
-        """Gets the SID of the current {session}
-
-        Returns:
-            str -- SID
-        """
-
-        res = self.session.get(
-            api_urls.API_URL, headers=networking_settings.HTTP_HEADERS, cookies=self.get_cookies())
-        return res.cookies.get("sid", domain=".deezer.com")
-
-    def get_token(self):
-        """Gets the token of the current {session}
-
-        Returns:
-            str -- Token
-        """
-
-        if not self.token:
-            self.get_user_data()
-        return self.token
+    @property
+    def user(self):
+        return self.current_user
 
     def get_track(self, track_id):
         """Gets the track info using the Deezer API
@@ -144,16 +63,7 @@ class Deezer:
             dict -- Dictionary that contains the {info}, {download} partial function, {tags}, and {get_tag} partial function.
         """
 
-        method = api_methods.SONG_GET_DATA
-        params = {
-            "SNG_ID": track_id
-        }
-
-        if not int(track_id) < 0:
-            method = api_methods.PAGE_TRACK
-
-        data = self._api_call(method, params=params)
-        data = data["results"]
+        data = self.gw.get_track(track_id)
 
         return {
             "info": data,
@@ -182,7 +92,7 @@ class Deezer:
                 track, quality=key, fallback=False)
 
             res = self.session.get(
-                download_url, cookies=self.get_cookies(), stream=True)
+                download_url, stream=True)
 
             if res.status_code == 200 and int(res.headers["Content-length"]) > 0:
                 qualities.append(key)
@@ -219,9 +129,9 @@ class Deezer:
             for i in range(1, len(main_artists)):
                 artists += separator + main_artists[i]
         else:
-            artists = track["ART_NAME"]
+            artists = track.get("ART_NAME")
 
-        title = track["SNG_TITLE"]
+        title = track.get("SNG_TITLE")
 
         if "VERSION" in track and track["VERSION"] != "":
             title += " " + track["VERSION"]
@@ -252,14 +162,14 @@ class Deezer:
             "title": title,
             "artist": artists,
             "genre": None,
-            "album": track["ALB_TITLE"],
-            "albumartist": track["ART_NAME"],
-            "label": album_data["label"],
-            "date": track["PHYSICAL_RELEASE_DATE"],
-            "discnumber": track["DISK_NUMBER"],
+            "album": track.get("ALB_TITLE"),
+            "albumartist": track.get("ART_NAME"),
+            "label": album_data.get("label"),
+            "date": track.get("PHYSICAL_RELEASE_DATE"),
+            "discnumber": track.get("DISK_NUMBER"),
             "tracknumber": track_number,
-            "isrc": track["ISRC"],
-            "copyright": track["COPYRIGHT"],
+            "isrc": track.get("ISRC"),
+            "copyright": track.get("COPYRIGHT"),
             "_albumart": cover,
         }
 
@@ -345,7 +255,7 @@ class Deezer:
             return f'https://e-cdns-proxy-{cdn}.dzcdn.net/mobile/1/{step3}'
 
         url = decrypt_url(track_formats.TRACK_FORMAT_MAP[quality]["code"])
-        res = self.session.get(url, cookies=self.get_cookies(), stream=True)
+        res = self.session.get(url, stream=True)
 
         if not fallback or (res.status_code == 200 and int(res.headers["Content-length"]) > 0):
             res.close()
@@ -361,7 +271,7 @@ class Deezer:
                     track_formats.TRACK_FORMAT_MAP[key]["code"])
 
                 res = self.session.get(
-                    url, cookies=self.get_cookies(), stream=True)
+                    url, stream=True)
 
                 if res.status_code == 200 and int(res.headers["Content-length"]) > 0:
                     res.close()
@@ -430,7 +340,7 @@ class Deezer:
         if show_messages:
             print("Starting download of:", title)
 
-        res = self.session.get(url, cookies=self.get_cookies(), stream=True)
+        res = self.session.get(url, stream=True)
         chunk_size = 2048
         total_filesize = int(res.headers["Content-Length"])
         i = 0
@@ -487,7 +397,8 @@ class Deezer:
         if show_messages:
             print("Track downloaded to:", download_path)
 
-        progress_handler.close(track_id=track["SNG_ID"], total_filesize=total_filesize)
+        progress_handler.close(
+            track_id=track["SNG_ID"], total_filesize=total_filesize)
 
     def get_tracks(self, track_ids):
         """Gets the list of the tracks that corresponds with the given {track_ids}
@@ -496,22 +407,9 @@ class Deezer:
             track_ids {list} -- List of track id
 
         Returns:
-            dict -- List of tracks
+            list -- List of tracks
         """
-
-        data = self._api_call(api_methods.SONG_GET_LIST_DATA, params={
-            "SNG_IDS": track_ids
-        })
-
-        data = data["results"]
-        valid_ids = [str(song["SNG_ID"]) for song in data["data"]]
-
-        data["errors"] = []
-        for id in track_ids:
-            if not str(id) in valid_ids:
-                data["errors"].append(id)
-
-        return data
+        return self.gw.get_tracks_gw(track_ids)
 
     def get_track_lyrics(self, track_id):
         """Gets the lyrics data of the given {track_id}
@@ -523,10 +421,7 @@ class Deezer:
             dict -- Dictionary that containts the {info}, and {save} partial function.
         """
 
-        data = self._api_call(api_methods.SONG_LYRICS, params={
-            "SNG_ID": track_id
-        })
-        data = data["results"]
+        data = self.gw.get_track_lyrics(track_id)
 
         return {
             "info": data,
@@ -576,15 +471,7 @@ class Deezer:
         Returns:
             dict -- Album data
         """
-
-        # data = self._api_call(api_methods.ALBUM_GET_DATA, params={
-        #     "ALB_ID": album_id,
-        #     "LANG": "en"
-        # })
-
-        # return data["results"]
-
-        data = self._legacy_api_call("/album/{0}".format(album_id))
+        data = self.api.get_album(album_id)
 
         # TODO: maybe better logic?
         data["cover_id"] = str(data["cover_small"]).split(
@@ -619,15 +506,7 @@ class Deezer:
             list -- List of tracks
         """
 
-        data = self._api_call(api_methods.ALBUM_TRACKS, params={
-            "ALB_ID": album_id,
-            "NB": -1
-        })
-
-        for i, track in enumerate(data["results"]["data"]):
-            track["_POSITION"] = i + 1
-
-        return data["results"]["data"]
+        return self.gw.get_album_tracks(album_id)
 
     def get_artist(self, artist_id):
         """Gets the artist data from the given {artist_id}
@@ -639,12 +518,7 @@ class Deezer:
             dict -- Artist data
         """
 
-        data = self._api_call(api_methods.PAGE_ARTIST, params={
-            "ART_ID": artist_id,
-            "LANG": "en"
-        })
-
-        return data["results"]
+        return self.gw.get_artist(artist_id)
 
     def get_artist_poster(self, artist, size=500, ext="jpg"):
         """Gets the artist poster as a binary data
@@ -665,7 +539,7 @@ class Deezer:
 
         return self._get_poster(artist["ART_PICTURE"], size=size, ext=ext)
 
-    def get_artist_discography(self, artist_id):
+    def get_artist_discography(self, artist_id, **kwargs):
         """Gets the artist's discography (tracks)
 
         Arguments:
@@ -674,17 +548,9 @@ class Deezer:
         Returns:
             dict -- Artist discography data
         """
+        return self.gw.get_artist_discography(artist_id, **kwargs)
 
-        data = self._api_call(api_methods.ARTIST_DISCOGRAPHY, params={
-            "ART_ID": artist_id,
-            "NB": 500,
-            "NB_SONGS": -1,
-            "START": 0
-        })
-
-        return data["results"]["data"]
-
-    def get_artist_top_tracks(self, artist_id):
+    def get_artist_top_tracks(self, artist_id, **kwargs):
         """Gets the top tracks of the given artist
 
         Arguments:
@@ -693,16 +559,7 @@ class Deezer:
         Returns:
             list -- List of track
         """
-
-        data = self._api_call(api_methods.ARTIST_TOP_TRACKS, params={
-            "ART_ID": artist_id,
-            "NB": 100
-        })
-
-        for i, track in enumerate(data["results"]["data"]):
-            track["_POSITION"] = i + 1
-
-        return data["results"]["data"]
+        return self.gw.get_artist_top_tracks(artist_id, **kwargs)
 
     def get_playlist(self, playlist_id):
         """Gets the playlist data from the given playlist_id
@@ -713,13 +570,7 @@ class Deezer:
         Returns:
             dict -- Playlist data
         """
-
-        data = self._api_call(api_methods.PAGE_PLAYLIST, params={
-            "playlist_id": playlist_id,
-            "LANG": "en"
-        })
-
-        return data["results"]
+        return self.gw.get_playlist(playlist_id)
 
     def get_playlist_tracks(self, playlist_id):
         """Gets the tracks inside the playlist
@@ -730,16 +581,7 @@ class Deezer:
         Returns:
             list -- List of tracks
         """
-
-        data = self._api_call(api_methods.PLAYLIST_TRACKS, params={
-            "PLAYLIST_ID": playlist_id,
-            "NB": -1
-        })
-
-        for i, track in enumerate(data["results"]["data"]):
-            track["_POSITION"] = i + 1
-
-        return data["results"]["data"]
+        return self.gw.get_playlist_tracks(playlist_id)
 
     def get_suggested_queries(self, query):
         """Gets suggestion based on the given {query}
@@ -751,18 +593,18 @@ class Deezer:
             list -- List of suggestions
         """
 
-        data = self._api_call(api_methods.GET_SUGGESTED_QUERIES, params={
+        data = self.gw.api_call("search_getSuggestedQueries", params={
             "QUERY": query
         })
 
-        results = data["results"]["SUGGESTION"]
+        results = data["SUGGESTION"]
         for result in results:
             if "HIGHLIGHT" in result:
                 del result["HIGHLIGHT"]
 
         return results
 
-    def search_tracks(self, query, limit=30, index=0):
+    def search_tracks(self, query, **kwargs):
         """Searches tracks on a given query
 
         Arguments:
@@ -775,10 +617,9 @@ class Deezer:
         Returns:
             list -- List of tracks
         """
+        return self.api.search_track(query, **kwargs)
 
-        return self._legacy_search(api_methods.SEARCH_TRACK, query, limit=limit, index=index)
-
-    def search_albums(self, query, limit=30, index=0):
+    def search_albums(self, query, **kwargs):
         """Searches albums on a given query
 
         Arguments:
@@ -791,10 +632,9 @@ class Deezer:
         Returns:
             list -- List of albums
         """
+        return self.api.search_album(query, **kwargs)
 
-        return self._legacy_search(api_methods.SEARCH_ALBUM, query, limit=limit, index=index)
-
-    def search_artists(self, query, limit=30, index=0):
+    def search_artists(self, query, **kwargs):
         """Searches artists on a given query
 
         Arguments:
@@ -808,9 +648,9 @@ class Deezer:
             list -- List of artists
         """
 
-        return self._legacy_search(api_methods.SEARCH_ARTIST, query, limit=limit, index=index)
+        return self.api.search_artist(query, **kwargs)
 
-    def search_playlists(self, query, limit=30, index=0):
+    def search_playlists(self, query, **kwargs):
         """Searches playlists on a given query
 
         Arguments:
@@ -824,18 +664,7 @@ class Deezer:
             list -- List of playlists
         """
 
-        return self._legacy_search(api_methods.SEARCH_PLAYLIST, query, limit=limit, index=index)
-
-    def _legacy_search(self, method, query, limit=30, index=0):
-        query = util.clean_query(query)
-
-        data = self._legacy_api_call(method, {
-            "q": query,
-            "limit": limit,
-            "index": index
-        })
-
-        return data["data"]
+        return self.api.search_playlist(query, **kwargs)
 
     def _get_poster(self, poster_id, size=500, ext="jpg"):
         ext = ext.lower()
@@ -843,8 +672,9 @@ class Deezer:
             raise ValueError("Image extension should only be jpg or png!")
 
         url = f'https://e-cdns-images.dzcdn.net/images/cover/{poster_id}/{size}x{size}.{ext}'
+
         return {
-            "image": self.session.get(url, params=networking_settings.HTTP_HEADERS, cookies=self.get_cookies()).content,
+            "image": self.session.get(url).content,
             "size": (size, size),
             "ext": ext,
             "mime_type": "image/jpeg" if ext == "jpg" else "image/png"
@@ -921,39 +751,3 @@ class Deezer:
             quality = track_formats.TRACK_FORMAT_MAP[quality]
 
         return quality
-
-    def _api_call(self, method, params={}):
-        token = "null"
-        if method != api_methods.GET_USER_DATA:
-            token = self.token
-
-        res = self.session.post(api_urls.API_URL, json=params, params={
-            "api_version": "1.0",
-            "api_token": token,
-            "input": "3",
-            "method": method
-        }, cookies=self.get_cookies())
-
-        data = res.json()
-
-        if "error" in data and data["error"]:
-            error_type = list(data["error"].keys())[0]
-            error_message = data["error"][error_type]
-            raise APIRequestError(
-                "{0} : {1}".format(error_type, error_message))
-
-        return data
-
-    def _legacy_api_call(self, method, params={}):
-        res = self.session.get("{0}/{1}".format(api_urls.LEGACY_API_URL, method),
-                               params=params, cookies=self.get_cookies())
-
-        data = res.json()
-
-        if "error" in data and data["error"]:
-            error_type = list(data["error"].keys())[0]
-            error_message = data["error"][error_type]
-            raise APIRequestError(
-                "{0} : {1}".format(error_type, error_message))
-
-        return data

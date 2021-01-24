@@ -15,6 +15,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=[
         "requests",
+        "deezer-py",
         "cryptography",
         "mutagen",
         "rich",
@@ -22,7 +23,6 @@ setuptools.setup(
         "pyinquirer",
         "colorama"
     ],
-    license="GNU GPL v3",
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent"
