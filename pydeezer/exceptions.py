@@ -8,3 +8,7 @@ class APIRequestError(Exception):
 
 class DownloadLinkDecryptionError(Exception):
     pass
+
+
+class InvalidJSONError(Exception):
+    pass

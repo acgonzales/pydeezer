@@ -7,3 +7,4 @@ colorama
 rich
 autopep8
 pylint
+deezer-py

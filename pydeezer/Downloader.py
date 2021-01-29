@@ -74,7 +74,7 @@ class Downloader:
             self.progress.stop()
 
     def __init__(self, deezer, track_ids_to_download, download_dir, quality=track_formats.MP3_320,
-                 concurrent_downloads=2, progress_handler: Type[BaseProgressHandler] = None):
+                 concurrent_downloads=4, progress_handler: Type[BaseProgressHandler] = None):
         self.deezer = deezer
         self.track_ids = track_ids_to_download
         self.download_dir = download_dir

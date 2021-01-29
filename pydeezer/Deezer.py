@@ -3,6 +3,9 @@ import hashlib
 from os import path
 
 from deezer import Deezer as DeezerPy
+from deezer.gw import APIError as GWAPIError
+from deezer.api import APIError as APIError
+
 import requests
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -53,7 +56,7 @@ class Deezer(DeezerPy):
     def user(self):
         return self.current_user
 
-    def get_track(self, track_id):
+    def get_track(self, track_id, **kwargs):
         """Gets the track info using the Deezer API
 
         Arguments:
@@ -63,7 +66,13 @@ class Deezer(DeezerPy):
             dict -- Dictionary that contains the {info}, {download} partial function, {tags}, and {get_tag} partial function.
         """
 
-        data = self.gw.get_track(track_id)
+        data, m = self._api_fallback(
+            partial(self.gw.get_track, track_id), partial(self.api.get_track, track_id), **kwargs)
+
+        if m == "gw":
+            data = util.map_gw_track(data)
+        else:
+            data = util.map_api_track(data)
 
         return {
             "info": data,
@@ -81,8 +90,6 @@ class Deezer(DeezerPy):
         Returns:
             list -- List of keys of the valid qualities from the {track_formats.TRACK_FORMAT_MAP}
         """
-
-        track = track["DATA"] if "DATA" in track else track
 
         qualities = []
 
@@ -118,23 +125,19 @@ class Deezer(DeezerPy):
         Returns:
             dict -- Tags
         """
+        album_data, _ = self.get_album(track["album"]["id"])
 
-        track = track["DATA"] if "DATA" in track else track
+        main_contributors = list(
+            filter(lambda contributor: contributor["role"] == "Main", track.get("contributors", [])))
+        main_artists = track["artist"]["name"]
 
-        album_data = self.get_album(track["ALB_ID"])
+        for i in range(1, len(main_contributors)):
+            main_artists += separator + main_contributors[i]["name"]
 
-        if "main_artist" in track["SNG_CONTRIBUTORS"]:
-            main_artists = track["SNG_CONTRIBUTORS"]["main_artist"]
-            artists = main_artists[0]
-            for i in range(1, len(main_artists)):
-                artists += separator + main_artists[i]
-        else:
-            artists = track.get("ART_NAME")
+        title = track.get("title")
 
-        title = track.get("SNG_TITLE")
-
-        if "VERSION" in track and track["VERSION"] != "":
-            title += " " + track["VERSION"]
+        if "version" in track and track["version"] != "":
+            title += " " + track["version"]
 
         def should_include_featuring():
             # Checks if the track title already have the featuring artists in its title
@@ -145,43 +148,47 @@ class Deezer(DeezerPy):
                     return False
             return True
 
-        if should_include_featuring() and "featuring" in track["SNG_CONTRIBUTORS"]:
-            featuring_artists_data = track["SNG_CONTRIBUTORS"]["featuring"]
-            featuring_artists = featuring_artists_data[0]
+        featuring_artists_data = list(
+            filter(lambda contributor: contributor["role"] == "Featured", track.get("contributors", [])))
+
+        if should_include_featuring() and len(featuring_artists_data) > 0:
+            featuring_artists = featuring_artists_data[0]["name"]
             for i in range(1, len(featuring_artists_data)):
-                featuring_artists += separator + featuring_artists_data[i]
+                featuring_artists += separator + \
+                    featuring_artists_data[i]["name"]
 
             title += f" (feat. {featuring_artists})"
 
         total_tracks = album_data["nb_tracks"]
-        track_number = str(track["TRACK_NUMBER"]) + "/" + str(total_tracks)
+        track_number = str(track["track_number"]) + "/" + str(total_tracks)
 
         cover = self.get_album_poster(album_data, size=1000)
 
         tags = {
             "title": title,
-            "artist": artists,
+            "artist": main_artists,
             "genre": None,
-            "album": track.get("ALB_TITLE"),
-            "albumartist": track.get("ART_NAME"),
+            "album": album_data.get("title"),
+            "albumartist": album_data.get("artist")["name"],
             "label": album_data.get("label"),
-            "date": track.get("PHYSICAL_RELEASE_DATE"),
-            "discnumber": track.get("DISK_NUMBER"),
+            "date": track.get("release_date"),
+            "discnumber": track.get("disk_number"),
             "tracknumber": track_number,
-            "isrc": track.get("ISRC"),
-            "copyright": track.get("COPYRIGHT"),
+            "isrc": track.get("isrc"),
+            "copyright": album_data.get("copyright"),
             "_albumart": cover,
         }
 
         if len(album_data["genres"]["data"]) > 0:
             tags["genre"] = album_data["genres"]["data"][0]["name"]
 
-        if "author" in track["SNG_CONTRIBUTORS"]:
-            _authors = track["SNG_CONTRIBUTORS"]["author"]
+        _authors = list(filter(
+            lambda contributor: contributor["role"] == "Author", track.get("contributors", [])))
 
-            authors = _authors[0]
+        if len(_authors) > 0:
+            authors = _authors[0]["name"]
             for i in range(1, len(_authors)):
-                authors += separator + _authors[i]
+                authors += separator + _authors[i]["name"]
 
             tags["author"] = authors
 
@@ -211,26 +218,23 @@ class Deezer(DeezerPy):
         # Huge thanks!
 
         if renew:
-            track = self.get_track(track["SNG_ID"])["info"]
+            track = self.get_track(track["id"])["info"]
 
         if not quality:
             quality = track_formats.MP3_128
             fallback = True
 
         try:
-            # Just in case they passed in the whole dictionary from get_track()
-            track = track["DATA"] if "DATA" in track else track
-
-            if not "MD5_ORIGIN" in track:
+            if not "md5_origin" in track:
                 raise DownloadLinkDecryptionError(
                     "MD5 is needed to decrypt the download link.")
 
-            md5_origin = track["MD5_ORIGIN"]
-            track_id = track["SNG_ID"]
-            media_version = track["MEDIA_VERSION"]
+            md5_origin = track["md5_origin"]
+            track_id = track["id"]
+            media_version = track["media_version"]
         except ValueError:
             raise ValueError(
-                "You have passed an invalid argument. This method needs the \"DATA\" value in the dictionary returned by the get_track() method.")
+                "You have passed an invalid argument.")
 
         def decrypt_url(quality_code):
             magic_char = "¤"
@@ -250,7 +254,7 @@ class Deezer(DeezerPy):
             encryptor = cipher.encryptor()
             step3 = encryptor.update(bytes([ord(x) for x in step2])).hex()
 
-            cdn = track["MD5_ORIGIN"][0]
+            cdn = track["md5_origin"][0]
 
             return f'https://e-cdns-proxy-{cdn}.dzcdn.net/mobile/1/{step3}'
 
@@ -296,26 +300,17 @@ class Deezer(DeezerPy):
         """
 
         if with_lyrics:
-            if "LYRICS" in track:
-                lyric_data = track["LYRICS"]
-            else:
-                try:
-                    if "DATA" in track:
-                        lyric_data = self.get_track_lyrics(
-                            track["DATA"]["SNG_ID"])["info"]
-                    else:
-                        lyric_data = self.get_track_lyrics(
-                            track["SNG_ID"])["info"]
-                except APIRequestError:
-                    with_lyrics = False
-
-        track = track["DATA"] if "DATA" in track else track
+            try:
+                lyrics_data = track.get(
+                    "lyrics", self.get_track_lyrics(track["id"])["info"])
+            except Exception:
+                with_lyrics = False
 
         tags = self.get_track_tags(track, separator=tag_separator)
 
         url, quality_key = self.get_track_download_url(
             track, quality, fallback=fallback, renew=renew, **kwargs)
-        blowfish_key = util.get_blowfish_key(track["SNG_ID"])
+        blowfish_key = util.get_blowfish_key(track["id"])
 
         # quality = self._select_valid_quality(track, quality)
 
@@ -351,7 +346,7 @@ class Deezer(DeezerPy):
             progress_handler = DefaultProgressHandler()
 
         progress_handler.initialize(data_iter, title, quality_key, total_filesize,
-                                    chunk_size, track_id=track["SNG_ID"])
+                                    chunk_size, track_id=track["id"])
 
         with open(download_path, "wb") as f:
             f.seek(0)
@@ -364,7 +359,7 @@ class Deezer(DeezerPy):
                 elif len(chunk) < chunk_size:
                     f.write(chunk)
                     progress_handler.update(
-                        track_id=track["SNG_ID"], current_chunk_size=current_chunk_size)
+                        track_id=track["id"], current_chunk_size=current_chunk_size)
                     break
                 else:
                     cipher = Cipher(algorithms.Blowfish(blowfish_key),
@@ -382,7 +377,7 @@ class Deezer(DeezerPy):
                 i += 1
 
                 progress_handler.update(
-                    track_id=track["SNG_ID"], current_chunk_size=current_chunk_size)
+                    track_id=track["id"], current_chunk_size=current_chunk_size)
 
         if with_metadata:
             if ext.lower() == ".flac":
@@ -392,13 +387,13 @@ class Deezer(DeezerPy):
 
         if with_lyrics:
             lyrics_path = path.join(download_dir, filename[:-len(ext)])
-            self.save_lyrics(lyric_data, lyrics_path)
+            self.save_lyrics(lyrics_data, lyrics_path)
 
         if show_messages:
             print("Track downloaded to:", download_path)
 
         progress_handler.close(
-            track_id=track["SNG_ID"], total_filesize=total_filesize)
+            track_id=track["id"], total_filesize=total_filesize)
 
     def get_tracks(self, track_ids):
         """Gets the list of the tracks that corresponds with the given {track_ids}
@@ -471,13 +466,17 @@ class Deezer(DeezerPy):
         Returns:
             dict -- Album data
         """
-        data = self.api.get_album(album_id)
+        data, m = self._api_fallback(
+            partial(self.gw.get_album, album_id), partial(self.api.get_album, album_id), gw_priority=False)
+
+        if m == "gw":
+            data = util.map_gw_album(data)
 
         # TODO: maybe better logic?
         data["cover_id"] = str(data["cover_small"]).split(
             "cover/")[1].split("/")[0]
 
-        return data
+        return data, m
 
     def get_album_poster(self, album, size=500, ext="jpg"):
         """Gets the album poster as a binary data
@@ -570,7 +569,13 @@ class Deezer(DeezerPy):
         Returns:
             dict -- Playlist data
         """
-        return self.gw.get_playlist(playlist_id)
+        result, m = self._api_fallback(partial(
+            self.gw.get_playlist, playlist_id), partial(self.api.get_playlist, playlist_id))
+
+        if m == "gw":
+            result["mapped"] = util.map_playlist(result)
+
+        return result
 
     def get_playlist_tracks(self, playlist_id):
         """Gets the tracks inside the playlist
@@ -751,3 +756,16 @@ class Deezer(DeezerPy):
             quality = track_formats.TRACK_FORMAT_MAP[quality]
 
         return quality
+
+    def _api_fallback(self, gw_f, api_f, gw_priority=True, *args, **kwargs):
+        try:
+            if gw_priority:
+                return gw_f(*args, **kwargs), "gw"
+            else:
+                return api_f(*args, **kwargs), "api"
+        except APIError:
+            print("API error, falling back to GW.")
+            return gw_f(*args, **kwargs), "gw"
+        except GWAPIError:
+            print("GW API error, falling back to official API.")
+            return api_f(*args, **kwargs), "api"
