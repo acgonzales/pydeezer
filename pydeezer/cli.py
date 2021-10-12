@@ -63,19 +63,19 @@ def download(arl, media_type, download_dir, quality):
                 "name": album["title"] + " - " + album["artist"]["name"],
                 "value": album["id"],
                 "short": album["title"]
-            } for album in deezer.search_albums(query)]
+            } for album in deezer.search_albums(query)['data']]
         elif _media_type == "PLAYLIST":
             return [{
                 "name": playlist["title"] + " - " + playlist["user"]["name"],
                 "value": playlist["id"],
                 "short": playlist["title"]
-            } for playlist in deezer.search_playlists(query)]
+            } for playlist in deezer.search_playlists(query)['data']]
         elif _media_type == "ARTIST":
             return [{
                 "name": artist["name"],
                 "value": artist["id"],
                 "short": artist["name"]
-            } for artist in deezer.search_artists(query)]
+            } for artist in deezer.search_artists(query)['data']]
 
     def track_choices(answers):
         if "media_type" in answers:
@@ -185,10 +185,10 @@ def download(arl, media_type, download_dir, quality):
 
     for track in tracks:
         t = deezer.get_track(track)
-        info = t["info"]["DATA"]
+        info = t["info"]
 
-        artist_name = util.clean_filename(info["ART_NAME"])
-        album_name = util.clean_filename(info["ALB_TITLE"])
+        artist_name = util.clean_filename(info["artist"]["name"])
+        album_name = util.clean_filename(info["album"]["title"])
 
         download_path = path.join(download_dir, artist_name, album_name)
         util.create_folders(download_path)
