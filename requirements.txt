@@ -2,7 +2,7 @@ requests
 cryptography
 mutagen
 click
-pyinquirer
+git+https://github.com/CITGuru/PyInquirer.git@master#egg=pyinquirer
 colorama
 rich
 autopep8
