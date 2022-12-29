@@ -175,7 +175,7 @@ def download(arl, media_type, download_dir, quality):
         }
     ]
 
-    answers = prompt(questions)
+    answers = prompt.prompt(questions)
 
     tracks = answers["tracks"]
     quality = quality if quality else answers["quality"]
