@@ -40,7 +40,7 @@ def download(arl, media_type, download_dir, quality):
                 return "Arl is invalid. Please try again..."
             return True
 
-        user = prompt({
+        user = prompt.prompt({
             "type": "input",
             "name": "user",
             "message": "Please input your ARL.",
@@ -175,7 +175,7 @@ def download(arl, media_type, download_dir, quality):
         }
     ]
 
-    answers = prompt(questions)
+    answers = prompt.prompt(questions)
 
     tracks = answers["tracks"]
     quality = quality if quality else answers["quality"]

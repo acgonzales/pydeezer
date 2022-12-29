@@ -20,7 +20,7 @@ setuptools.setup(
         "mutagen",
         "rich",
         "click",
-        "pyinquirer",
+        "pyinquirer @ git+https://github.com/CITGuru/PyInquirer.git@master#egg=pyinquirer"
         "colorama"
     ],
     classifiers=[
