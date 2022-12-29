@@ -400,7 +400,7 @@ class Deezer(DeezerPy):
         Returns:
             list -- List of tracks
         """
-        return self.gw.get_tracks_gw(track_ids)
+        return self.gw.get_tracks(track_ids)
 
     def get_track_lyrics(self, track_id):
         """Gets the lyrics data of the given {track_id}
